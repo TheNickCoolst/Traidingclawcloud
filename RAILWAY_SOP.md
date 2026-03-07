@@ -61,6 +61,7 @@ Main:
 railway variables set TRADING_RUNTIME_ROLE="main" --service tradingclaw-main --skip-deploys
 railway variables set TELEGRAM_ENABLED="true" --service tradingclaw-main --skip-deploys
 railway variables set DAILY_LOG_DELIVERY_ENABLED="true" --service tradingclaw-main --skip-deploys
+railway variables set MCP_ENABLED="true" --service tradingclaw-main --skip-deploys
 ```
 
 Light:
@@ -69,6 +70,7 @@ Light:
 railway variables set TRADING_RUNTIME_ROLE="light" --service tradingclaw-light --skip-deploys
 railway variables set TELEGRAM_ENABLED="false" --service tradingclaw-light --skip-deploys
 railway variables set DAILY_LOG_DELIVERY_ENABLED="false" --service tradingclaw-light --skip-deploys
+railway variables set MCP_ENABLED="false" --service tradingclaw-light --skip-deploys
 railway variables set ESCALATION_MAIN_URL="https://<main-domain>/internal/escalate/main" --service tradingclaw-light --skip-deploys
 ```
 
@@ -78,6 +80,7 @@ Ultra:
 railway variables set TRADING_RUNTIME_ROLE="ultra" --service tradingclaw-ultra --skip-deploys
 railway variables set TELEGRAM_ENABLED="false" --service tradingclaw-ultra --skip-deploys
 railway variables set DAILY_LOG_DELIVERY_ENABLED="false" --service tradingclaw-ultra --skip-deploys
+railway variables set MCP_ENABLED="false" --service tradingclaw-ultra --skip-deploys
 railway variables set ESCALATION_LIGHT_URL="https://<light-domain>/internal/escalate/light" --service tradingclaw-ultra --skip-deploys
 ```
 
@@ -136,6 +139,8 @@ Railway does not expose `0.05 vCPU` hard pinning via CLI for this setup. Cost co
 - production build (no `tsx watch` in container),
 - split roles (main/light/ultra),
 - budget mode defaults,
+- low-memory runtime path on light/ultra (no Telegram polling stack, outbound-only notifications),
+- MCP disabled on light/ultra unless explicitly needed,
 - US market-hours-only scheduling,
 - disabled nonessential background jobs.
 

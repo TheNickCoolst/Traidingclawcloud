@@ -51,6 +51,8 @@ interface Config {
     elevenlabsVoiceId: string;
     /** Path to MCP servers JSON configuration */
     mcpServersConfigPath?: string;
+    /** Whether MCP server processes should be connected for this runtime */
+    mcpEnabled: boolean;
     /** Whether the heartbeat scheduler is enabled */
     heartbeatEnabled: boolean;
     /** Timezone for heartbeat schedule (IANA format) */
@@ -225,6 +227,7 @@ const railwayBudgetMode = parseBooleanEnv(process.env["RAILWAY_BUDGET_MODE"], fa
 const runtimeRole = parseRuntimeRole(process.env["TRADING_RUNTIME_ROLE"]);
 const defaultTelegramEnabled = runtimeRole === "all" || runtimeRole === "main";
 const defaultDailyLogDeliveryEnabled = runtimeRole === "all" || runtimeRole === "main";
+const defaultMcpEnabled = runtimeRole === "all" || runtimeRole === "main";
 
 export const config: Config = {
     runtimeRole,
@@ -252,6 +255,7 @@ export const config: Config = {
     elevenlabsApiKey: requireEnv("ELEVENLABS_API_KEY"),
     elevenlabsVoiceId: process.env["ELEVENLABS_VOICE_ID"] ?? "21m00Tcm4TlvDq8ikWAM",
     mcpServersConfigPath: process.env["MCP_SERVERS_CONFIG"],
+    mcpEnabled: parseBooleanEnv(process.env["MCP_ENABLED"], defaultMcpEnabled),
     heartbeatEnabled: parseBooleanEnv(withBudgetDefault("HEARTBEAT_ENABLED", "true", "false", railwayBudgetMode), true),
     heartbeatTimezone: process.env["HEARTBEAT_TIMEZONE"] ?? "Europe/Berlin",
     heartbeatIntervalMinutes: Number(process.env["HEARTBEAT_INTERVAL_MINUTES"] ?? "60"),
