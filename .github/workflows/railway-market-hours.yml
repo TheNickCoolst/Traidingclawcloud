@@ -32,11 +32,11 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-
-      - name: Link project context
-        run: railway link --project "${RAILWAY_PROJECT_ID}" --environment "${RAILWAY_ENVIRONMENT}"
 
       - name: Decide action by market time
         id: market
@@ -100,14 +100,14 @@ jobs:
           action="${{ steps.market.outputs.action }}"
           echo "Selected action: $action"
           for svc in ${SERVICE_LIST}; do
-            status_line="$(railway service status --service "$svc" | tr -d '\r' | grep 'Status:' || true)"
+            status_line="$(railway service status --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" | tr -d '\r' | grep 'Status:' || true)"
             status="${status_line#Status: }"
             echo "Service $svc status: ${status:-unknown}"
 
             if [ "$action" = "up" ]; then
               if [ "$status" = "NO DEPLOYMENT" ]; then
                 echo "Bringing $svc up..."
-                railway up --service "$svc" --detach
+                railway up --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" --project "${RAILWAY_PROJECT_ID}" --detach
               else
                 echo "$svc already deployed. Skipping up."
               fi
@@ -116,7 +116,7 @@ jobs:
                 echo "$svc already down."
               else
                 echo "Bringing $svc down..."
-                railway down --service "$svc" --yes
+                railway down --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" --yes
               fi
             fi
           done

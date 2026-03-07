@@ -31,19 +31,16 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Link project context
-        run: railway link --project "${RAILWAY_PROJECT_ID}" --environment "${RAILWAY_ENVIRONMENT}"
-
       - name: Start all services
         run: |
           set -euo pipefail
           for svc in ${SERVICE_LIST}; do
-            status_line="$(railway service status --service "$svc" | tr -d '\r' | grep 'Status:' || true)"
+            status_line="$(railway service status --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" | tr -d '\r' | grep 'Status:' || true)"
             status="${status_line#Status: }"
             echo "Service $svc status: ${status:-unknown}"
             if [ "$status" = "NO DEPLOYMENT" ]; then
               echo "Starting $svc..."
-              railway up --service "$svc" --detach
+              railway up --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" --project "${RAILWAY_PROJECT_ID}" --detach
             else
               echo "$svc already deployed. Skip."
             fi
