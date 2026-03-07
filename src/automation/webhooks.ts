@@ -1,118 +1,171 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import type { Server } from "node:http";
-import fs from "fs";
-import path from "path";
+import crypto from "node:crypto";
+import { config } from "../config.js";
 import { router } from "../channels/router.js";
-import { getDashboardCycles, getDashboardLogs, getDashboardOverview, getDashboardTrades, type DashboardCycleType } from "../dashboard/service.js";
+import { manualLightCycle, manualTradingCycle } from "../trading/engine.js";
 
 const app = express();
-app.use(express.json());
+const WEBHOOK_PORT = config.webhookPort;
 
-const WEBHOOK_PORT = Number(process.env["WEBHOOK_PORT"] || "3000");
-const UI_DIR = path.join(process.cwd(), "ui");
+type RateLimitEntry = {
+    count: number;
+    resetAt: number;
+};
 
-function isLoopbackAddress(address: string | undefined): boolean {
-    if (!address) return false;
-    const normalized = address.trim();
-    return normalized === "::1"
-        || normalized === "127.0.0.1"
-        || normalized === "::ffff:127.0.0.1"
-        || normalized.endsWith("127.0.0.1");
+app.disable("x-powered-by");
+app.set("trust proxy", false);
+app.use(express.json({
+    limit: `${Math.max(4, Math.floor(config.webhookJsonLimitKb))}kb`,
+    strict: true,
+    type: ["application/json", "application/*+json"],
+}));
+app.use(express.urlencoded({
+    extended: false,
+    limit: `${Math.max(4, Math.floor(config.webhookFormLimitKb))}kb`,
+    parameterLimit: 20,
+}));
+app.use((_req, res, next) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    next();
+});
+
+function getClientAddress(req: Request): string {
+    return req.socket.remoteAddress || req.ip || "unknown";
 }
 
-function ensureLocalDashboardRequest(req: Request, res: Response, next: NextFunction): void {
-    const remoteAddress = req.socket.remoteAddress || req.ip;
-    if (!isLoopbackAddress(remoteAddress)) {
-        res.status(403).json({ error: "Dashboard is only available from localhost." });
+function createRateLimiter(windowMs: number, maxRequests: number, label: string) {
+    const hits = new Map<string, RateLimitEntry>();
+    const safeWindowMs = Math.max(1_000, Math.floor(windowMs));
+    const safeMaxRequests = Math.max(1, Math.floor(maxRequests));
+
+    return (req: Request, res: Response, next: NextFunction): void => {
+        const now = Date.now();
+        const client = getClientAddress(req);
+
+        for (const [key, entry] of hits) {
+            if (entry.resetAt <= now) {
+                hits.delete(key);
+            }
+        }
+
+        const current = hits.get(client);
+        if (!current || current.resetAt <= now) {
+            hits.set(client, { count: 1, resetAt: now + safeWindowMs });
+            next();
+            return;
+        }
+
+        current.count += 1;
+        if (current.count > safeMaxRequests) {
+            const retryAfterSeconds = Math.max(1, Math.ceil((current.resetAt - now) / 1000));
+            res.setHeader("Retry-After", String(retryAfterSeconds));
+            res.status(429).json({ error: `${label} rate limit exceeded.` });
+            return;
+        }
+
+        next();
+    };
+}
+
+function constantTimeTokenMatch(candidate: string, expected: string): boolean {
+    const left = Buffer.from(candidate);
+    const right = Buffer.from(expected);
+    if (left.length !== right.length) return false;
+    return crypto.timingSafeEqual(left, right);
+}
+
+function isValidTriggerId(triggerId: string): boolean {
+    return /^[a-zA-Z0-9_-]{1,120}$/.test(triggerId);
+}
+
+function ensureWebhookSharedSecret(req: Request, res: Response, next: NextFunction): void {
+    if (!config.webhookRequireSharedSecret) {
+        next();
         return;
     }
+
+    const expectedSecret = config.webhookSharedSecret?.trim();
+    if (!expectedSecret) {
+        res.status(503).json({ error: "Webhook secret protection is enabled but no shared secret is configured." });
+        return;
+    }
+
+    const providedSecret = req.header("x-tradingclaw-webhook-secret")?.trim()
+        || req.header("authorization")?.replace(/^Bearer\s+/i, "").trim()
+        || "";
+
+    if (!providedSecret || !constantTimeTokenMatch(providedSecret, expectedSecret)) {
+        res.status(401).json({ error: "Webhook secret missing or invalid." });
+        return;
+    }
+
     next();
 }
 
-function sendUiFile(fileName: string, res: Response): void {
-    const filePath = path.join(UI_DIR, fileName);
-    if (!fs.existsSync(filePath)) {
-        res.status(404).send("UI asset not found.");
+const webhookRateLimiter = createRateLimiter(config.webhookRateLimitWindowMs, config.webhookRateLimitMax, "Webhook");
+
+async function relayEscalationToMain(handover: {
+    source?: "light" | "ultra_light";
+    reason?: string;
+    context?: string;
+    confidence?: number;
+}): Promise<void> {
+    const targetUrl = config.escalationMainUrl;
+    if (!targetUrl) {
+        const summary = await manualTradingCycle(handover);
+        console.log(`[Webhook] Light escalation executed local main cycle. ${summary.slice(0, 220)}`);
         return;
     }
-    res.sendFile(filePath);
+
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    const secret = config.escalationSharedSecret?.trim();
+    if (secret) headers["x-tradingclaw-webhook-secret"] = secret;
+
+    const controller = new AbortController();
+    const timeoutMs = Math.max(1000, Math.floor(config.escalationRequestTimeoutMs));
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(targetUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(handover),
+            signal: controller.signal,
+        });
+        const text = await response.text();
+        if (!response.ok) {
+            console.error(`[Webhook] Escalation relay failed (${response.status}): ${text.slice(0, 200)}`);
+            return;
+        }
+        console.log(`[Webhook] Escalation relayed to main service: ${text.slice(0, 200)}`);
+    } catch (err: any) {
+        console.error(`[Webhook] Escalation relay error: ${err.message}`);
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
-function parseCycleType(raw: unknown): DashboardCycleType {
-    const value = String(raw ?? "all").toLowerCase();
-    if (value === "trading" || value === "light" || value === "reflection") {
-        return value;
+app.get("/", (_req, res) => {
+    res.status(410).json({ error: "Web UI disabled. Telegram is the active control surface." });
+});
+
+app.post("/webhook/:triggerId", webhookRateLimiter, ensureWebhookSharedSecret, async (req, res) => {
+    const rawTriggerId = req.params.triggerId;
+    const triggerId = Array.isArray(rawTriggerId) ? rawTriggerId[0] : rawTriggerId;
+    if (!isValidTriggerId(triggerId)) {
+        res.status(400).json({ error: "Invalid trigger ID." });
+        return;
     }
-    return "all";
-}
 
-app.get("/", ensureLocalDashboardRequest, (_req, res) => {
-    sendUiFile("index.html", res);
-});
-
-app.get("/app.js", ensureLocalDashboardRequest, (_req, res) => {
-    res.type("application/javascript");
-    sendUiFile("app.js", res);
-});
-
-app.get("/styles.css", ensureLocalDashboardRequest, (_req, res) => {
-    res.type("text/css");
-    sendUiFile("styles.css", res);
-});
-
-app.get("/favicon.ico", ensureLocalDashboardRequest, (_req, res) => {
-    res.status(204).end();
-});
-
-app.get("/api/dashboard/overview", ensureLocalDashboardRequest, async (_req, res) => {
-    try {
-        res.json(await getDashboardOverview());
-    } catch (err: any) {
-        console.error("[Dashboard] Overview failed:", err);
-        res.status(500).json({ error: err.message || "Failed to load dashboard overview." });
-    }
-});
-
-app.get("/api/dashboard/cycles", ensureLocalDashboardRequest, (req, res) => {
-    try {
-        const limit = Number(req.query["limit"] ?? "20");
-        const type = parseCycleType(req.query["type"]);
-        res.json({ items: getDashboardCycles(limit, type) });
-    } catch (err: any) {
-        console.error("[Dashboard] Cycles failed:", err);
-        res.status(500).json({ error: err.message || "Failed to load cycles." });
-    }
-});
-
-app.get("/api/dashboard/trades", ensureLocalDashboardRequest, (req, res) => {
-    try {
-        const limit = Number(req.query["limit"] ?? "20");
-        res.json({ items: getDashboardTrades(limit) });
-    } catch (err: any) {
-        console.error("[Dashboard] Trades failed:", err);
-        res.status(500).json({ error: err.message || "Failed to load trades." });
-    }
-});
-
-app.get("/api/dashboard/logs/today", ensureLocalDashboardRequest, (req, res) => {
-    try {
-        const lines = Number(req.query["lines"] ?? "120");
-        res.json(getDashboardLogs(lines));
-    } catch (err: any) {
-        console.error("[Dashboard] Logs failed:", err);
-        res.status(500).json({ error: err.message || "Failed to load logs." });
-    }
-});
-
-// Setup a simple catch-all trigger mapped to a specific internal channel
-app.post("/webhook/:triggerId", async (req, res) => {
-    const triggerId = req.params.triggerId;
     const bodyText = JSON.stringify(req.body);
-
     console.log(`[Webhook] Received trigger: ${triggerId}`);
 
-    const rootAdminId = Number(process.env.ALLOWED_USER_IDS?.split(",")[0] || "0");
+    const rootAdminId = config.allowedUserIds[0] ?? 0;
     const prompt = `[AUTOMATED WEBHOOK TRIGGER: ${triggerId}]\nThe following payload was received. Act accordingly based on your instructions:\n${bodyText}`;
 
     try {
@@ -130,6 +183,57 @@ app.post("/webhook/:triggerId", async (req, res) => {
     }
 });
 
+app.post("/internal/escalate/main", webhookRateLimiter, ensureWebhookSharedSecret, async (req, res) => {
+    const handover = (req.body ?? {}) as {
+        source?: "light" | "ultra_light";
+        reason?: string;
+        context?: string;
+        confidence?: number;
+    };
+    console.log("[Webhook] Internal escalation request accepted -> MAIN");
+    res.status(202).json({ status: "accepted", target: "main" });
+
+    void (async () => {
+        try {
+            const summary = await manualTradingCycle(handover);
+            console.log(`[Webhook] Internal MAIN escalation completed. ${summary.slice(0, 260)}`);
+        } catch (err: any) {
+            console.error(`[Webhook] Internal MAIN escalation failed: ${err.message}`);
+        }
+    })();
+});
+
+app.post("/internal/escalate/light", webhookRateLimiter, ensureWebhookSharedSecret, async (_req, res) => {
+    console.log("[Webhook] Internal escalation request accepted -> LIGHT");
+    res.status(202).json({ status: "accepted", target: "light" });
+
+    void (async () => {
+        try {
+            const result = await manualLightCycle();
+            console.log(`[Webhook] Internal LIGHT escalation completed. ${result.summary.slice(0, 260)}`);
+            if (result.triggerMain && result.handover) {
+                await relayEscalationToMain(result.handover);
+            }
+        } catch (err: any) {
+            console.error(`[Webhook] Internal LIGHT escalation failed: ${err.message}`);
+        }
+    })();
+});
+
+app.use((_req, res) => {
+    res.status(404).json({ error: "Not found." });
+});
+
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("[Webhook] Unhandled request error:", err);
+    if (res.headersSent) {
+        return;
+    }
+    res.status(500).json({ error: "Internal server error." });
+});
+
+let webhookServer: Server | null = null;
+
 export function startWebhookServer() {
     if (webhookServer) {
         console.log(`[Webhook] Already listening on port ${WEBHOOK_PORT}. Skipping duplicate start.`);
@@ -138,11 +242,9 @@ export function startWebhookServer() {
 
     webhookServer = app.listen(WEBHOOK_PORT, () => {
         console.log(`[Webhook] Listening on port ${WEBHOOK_PORT}`);
-        console.log(`[Dashboard] Local UI: http://127.0.0.1:${WEBHOOK_PORT}/`);
+        console.log("[Webhook] Web UI disabled. Telegram notifications are active.");
     });
     webhookServer.on("error", (err: any) => {
         console.error(`[Webhook] Server error: ${err.message}`);
     });
 }
-
-let webhookServer: Server | null = null;

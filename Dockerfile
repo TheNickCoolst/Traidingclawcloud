@@ -1,6 +1,16 @@
-FROM node:20-alpine
+FROM node:20-alpine AS build
 
-# Install Chromium and dependencies for Puppeteer
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+RUN npm prune --omit=dev
+
+FROM node:20-alpine AS runtime
+
+# Chromium is required for tooling that uses puppeteer-core.
 RUN apk add --no-cache \
       chromium \
       nss \
@@ -9,20 +19,14 @@ RUN apk add --no-cache \
       ca-certificates \
       ttf-freefont
 
-# Puppeteer environment variables
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+ENV NODE_ENV=production \
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 WORKDIR /app
 
-# Copy dependency manifests
-COPY package.json package-lock.json ./
+COPY --from=build /app/package.json /app/package-lock.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
 
-# Install all dependencies (including devDependencies for tsx)
-RUN npm install
-
-# Copy everything for development
-COPY . .
-
-# Start development server
-CMD ["npm", "run", "dev"]
+CMD ["node", "dist/index.js"]

@@ -18,6 +18,7 @@
     "dotenv": "^16.4.7",
     "duckduckgo-images-api": "^1.0.5",
     "express": "^5.2.1",
+    "googleapis": "^150.0.1",
     "grammy": "^1.35.0",
     "node-cron": "^4.2.1",
     "openai": "^4.85.4",

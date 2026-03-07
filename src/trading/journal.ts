@@ -5,6 +5,7 @@
 import { db } from "../db.js";
 import fs from "fs";
 import path from "path";
+import { notifyTradeEvent } from "./telegram-reporter.js";
 
 // ── File Logging Setup ───────────────────────────────────────────────────────
 
@@ -189,6 +190,17 @@ export function logTrade(
   // Write to flat file log
   const logStr = `TRADE: ${side.toUpperCase()} ${qty}x ${symbol} @ ${price ?? "MARKET"}\nType: ${orderType}, Status: ${status}, ID: ${orderId}\nReasoning:\n${reasoning}`;
   appendToLog("trades.log", logStr);
+
+  void notifyTradeEvent({
+    symbol,
+    side,
+    qty,
+    price,
+    orderType,
+    orderId,
+    status,
+    reasoning,
+  });
 
   return result.lastInsertRowid as number;
 }

@@ -1,4 +1,4 @@
-import { router } from "../channels/router.js";
+﻿import { router } from "../channels/router.js";
 import { config } from "../config.js";
 
 let heartbeatTimeout: NodeJS.Timeout | null = null;
@@ -8,13 +8,18 @@ function getRootAdminId(): number {
 }
 
 export function startHeartbeat() {
+    if (!config.heartbeatEnabled) {
+        console.log("[Heartbeat] Disabled (HEARTBEAT_ENABLED=false).");
+        return;
+    }
+
     if (!config.heartbeatIntervalMinutes || config.heartbeatIntervalMinutes <= 0) {
-        console.log("ℹ️ [Heartbeat] Disabled in configuration.");
+        console.log("[Heartbeat] Disabled in configuration.");
         return;
     }
 
     const intervalMs = config.heartbeatIntervalMinutes * 60 * 1000;
-    console.log(`💓 [Heartbeat] Started. Pulsing every ${config.heartbeatIntervalMinutes} minutes.`);
+    console.log(`[Heartbeat] Started. Pulsing every ${config.heartbeatIntervalMinutes} minutes.`);
 
     const pulse = async () => {
         const adminId = getRootAdminId();
@@ -27,23 +32,12 @@ Do the following:
 4. If NO, output exactly "NO_ACTION_REQUIRED" and stop immediately. Do NOT send "NO_ACTION_REQUIRED" to the user verbally, it is a system flag.`;
 
         try {
-            // We use the 'agent' channel for internal silent monologue mapping,
-            // or we use telegram if we just want it to drop right into the main routing logic 
-            // and act as a hidden prompt. Given our setup, dispatching to Telegram
-            // with a metadata flag allows the router filtering.
-
-            // To ensure it doesn't just spam the user with random thoughts, 
-            // we will intercept "NO_ACTION_REQUIRED" inside the dispatcher later, 
-            // or simply let the agent's return response handle it.
-            // Actually, we'll just inject it. The LLM's raw response will be yielded.
-
             await router.dispatch("telegram", {
                 chatId: adminId,
                 text: prompt,
                 userId: adminId,
                 metadata: { automaticTask: true, isHeartbeat: true }
             });
-
         } catch (err: any) {
             console.error("Heartbeat error failed to execute pulse:", err.message);
         }
@@ -51,11 +45,10 @@ Do the following:
         heartbeatTimeout = setTimeout(pulse, intervalMs);
     };
 
-    // Begin looping
     heartbeatTimeout = setTimeout(pulse, intervalMs);
 }
 
 export function stopHeartbeat() {
     if (heartbeatTimeout) clearTimeout(heartbeatTimeout);
-    console.log("⏸️ [Heartbeat] Stopped.");
+    console.log("[Heartbeat] Stopped.");
 }

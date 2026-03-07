@@ -15,7 +15,7 @@ import { startTradingEngine, stopTradingEngine } from "./trading/engine.js";
 import { overrideConsole, setupDailyLogDelivery, stopDailyLogDelivery } from "./logger.js";
 
 const STARTUP_NOTIFY_STATE_PATH = path.join(process.cwd(), "data", "startup-notify.json");
-const APP_LOCK_PATH = path.join(process.cwd(), "data", "tradingclaw-app.lock");
+const APP_LOCK_PATH = path.join(process.cwd(), "data", `tradingclaw-app-${config.runtimeRole}.lock`);
 const STARTUP_NOTIFY_MINUTES = Number(process.env["STARTUP_NOTIFY_MINUTES"] ?? "360");
 const STARTUP_NOTIFY_MIN_MS = Math.max(1, STARTUP_NOTIFY_MINUTES) * 60 * 1000;
 let startupNotifiedInProcess = false;
@@ -177,6 +177,7 @@ async function main() {
     console.log(`│  Cycle:    Every ${String(config.tradingCycleHours) + "h"}${" ".repeat(22)}│`);
     console.log("└─────────────────────────────────────────┘");
     console.log(`🔒 PID: ${process.pid}`);
+    console.log(`🧩 Runtime role: ${config.runtimeRole}`);
     console.log("");
 
     console.log("🔌 Connecting to MCP Servers...");
@@ -197,12 +198,20 @@ async function main() {
     }
     console.log("");
 
+    startWebhookServer();
+
+    if (!config.telegramEnabled) {
+        router.register(telegramChannel);
+        console.log(`Runtime role "${config.runtimeRole}" running without Telegram polling.`);
+        registerShutdownHooks();
+        return;
+    }
+
     console.log("🚀 Starting Telegram interface...");
 
     // 1. Initialize dynamic architecture resources
     await loadPlugins();
     await loadSkills();
-    startWebhookServer();
 
     // 2. Register known channels
     router.register(telegramChannel);

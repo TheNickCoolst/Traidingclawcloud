@@ -1,6 +1,34 @@
 import "dotenv/config";
 
 interface Config {
+    /** Runtime role for split-cycle deployments */
+    runtimeRole: "all" | "main" | "light" | "ultra";
+    /** Enable low-cost runtime defaults for constrained Railway deployments */
+    railwayBudgetMode: boolean;
+    /** Whether Telegram polling and chat commands are enabled on this instance */
+    telegramEnabled: boolean;
+    /** Whether daily log delivery jobs are enabled on this instance */
+    dailyLogDeliveryEnabled: boolean;
+    /** Whether logs should also be written to local files */
+    logToFileEnabled: boolean;
+    /** Optional Google Drive upload for daily logs */
+    googleDriveLogUploadEnabled: boolean;
+    /** Google Drive folder id for log uploads */
+    googleDriveFolderId?: string;
+    /** Service-account email used to authenticate against Google Drive */
+    googleServiceAccountEmail?: string;
+    /** Service-account private key used to authenticate against Google Drive */
+    googleServiceAccountPrivateKey?: string;
+    /** Delete local log files after successful Drive upload */
+    deleteLocalLogAfterUpload: boolean;
+    /** Optional URL of the main-cycle service escalation endpoint */
+    escalationMainUrl?: string;
+    /** Optional URL of the light-cycle service escalation endpoint */
+    escalationLightUrl?: string;
+    /** Shared secret used for cross-service escalation calls */
+    escalationSharedSecret?: string;
+    /** Timeout for cross-service escalation requests */
+    escalationRequestTimeoutMs: number;
     /** Telegram bot token from BotFather */
     telegramBotToken: string;
     /** OpenRouter API key */
@@ -29,6 +57,30 @@ interface Config {
     heartbeatTimezone: string;
     /** Background monologue interval in minutes */
     heartbeatIntervalMinutes: number;
+    /** Port for webhook HTTP server */
+    webhookPort: number;
+    /** Max JSON body size accepted by the HTTP server in kilobytes */
+    webhookJsonLimitKb: number;
+    /** Max URL-encoded body size accepted by the HTTP server in kilobytes */
+    webhookFormLimitKb: number;
+    /** Sliding window size for webhook rate limiting in milliseconds */
+    webhookRateLimitWindowMs: number;
+    /** Max webhook requests per window per client */
+    webhookRateLimitMax: number;
+    /** Optional shared secret required on incoming webhook requests */
+    webhookSharedSecret?: string;
+    /** Whether webhook requests must present the shared secret */
+    webhookRequireSharedSecret: boolean;
+    /** Send automatic Telegram notifications for trading cycles */
+    telegramNotifyCycleResults: boolean;
+    /** Send automatic Telegram notifications when cycles start */
+    telegramNotifyCycleStarts: boolean;
+    /** Send automatic Telegram notifications for each trade/order event */
+    telegramNotifyTradeEvents: boolean;
+    /** Send automatic Telegram notifications for fast-cycle skip updates */
+    telegramNotifyFastCycleSkips: boolean;
+    /** Attach token usage snapshot to Telegram trading updates */
+    telegramNotifyTokenUsage: boolean;
     /** Alpaca API Key */
     alpacaApiKey: string;
     /** Alpaca API Secret */
@@ -149,40 +201,91 @@ function parseSelfImproveMode(raw: string | undefined): "internal" | "gemini-cli
     return mode === "gemini-cli" ? "gemini-cli" : "internal";
 }
 
+function parseRuntimeRole(raw: string | undefined): "all" | "main" | "light" | "ultra" {
+    const normalized = (raw ?? "all").trim().toLowerCase();
+    if (normalized === "main" || normalized === "light" || normalized === "ultra" || normalized === "all") {
+        return normalized;
+    }
+    return "all";
+}
+
+function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
+    if (raw == null) return fallback;
+    const normalized = raw.trim().toLowerCase();
+    if (["1", "true", "yes", "on"].includes(normalized)) return true;
+    if (["0", "false", "no", "off"].includes(normalized)) return false;
+    return fallback;
+}
+
+function withBudgetDefault(name: string, normalDefault: string, budgetDefault: string, budgetMode: boolean): string {
+    return process.env[name] ?? (budgetMode ? budgetDefault : normalDefault);
+}
+
+const railwayBudgetMode = parseBooleanEnv(process.env["RAILWAY_BUDGET_MODE"], false);
+const runtimeRole = parseRuntimeRole(process.env["TRADING_RUNTIME_ROLE"]);
+const defaultTelegramEnabled = runtimeRole === "all" || runtimeRole === "main";
+const defaultDailyLogDeliveryEnabled = runtimeRole === "all" || runtimeRole === "main";
+
 export const config: Config = {
+    runtimeRole,
+    railwayBudgetMode,
+    telegramEnabled: parseBooleanEnv(process.env["TELEGRAM_ENABLED"], defaultTelegramEnabled),
+    dailyLogDeliveryEnabled: parseBooleanEnv(process.env["DAILY_LOG_DELIVERY_ENABLED"], defaultDailyLogDeliveryEnabled),
+    logToFileEnabled: parseBooleanEnv(withBudgetDefault("LOG_TO_FILE_ENABLED", "true", "false", railwayBudgetMode), !railwayBudgetMode),
+    googleDriveLogUploadEnabled: parseBooleanEnv(process.env["GOOGLE_DRIVE_LOG_UPLOAD_ENABLED"], false),
+    googleDriveFolderId: process.env["GOOGLE_DRIVE_FOLDER_ID"],
+    googleServiceAccountEmail: process.env["GOOGLE_SERVICE_ACCOUNT_EMAIL"],
+    googleServiceAccountPrivateKey: process.env["GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"]?.replace(/\\n/g, "\n"),
+    deleteLocalLogAfterUpload: parseBooleanEnv(process.env["DELETE_LOCAL_LOG_AFTER_UPLOAD"], true),
+    escalationMainUrl: process.env["ESCALATION_MAIN_URL"],
+    escalationLightUrl: process.env["ESCALATION_LIGHT_URL"],
+    escalationSharedSecret: process.env["ESCALATION_SHARED_SECRET"] ?? process.env["WEBHOOK_SHARED_SECRET"],
+    escalationRequestTimeoutMs: Number(process.env["ESCALATION_REQUEST_TIMEOUT_MS"] ?? "8000"),
     telegramBotToken: requireEnv("TELEGRAM_BOT_TOKEN"),
     openrouterApiKey: requireEnv("OPENROUTER_API_KEY"),
     allowedUserIds: parseUserIds(requireEnv("ALLOWED_USER_IDS")),
     model: process.env["MODEL"] ?? "stepfun/step-3.5-flash:free",
     providerChain: (process.env["PROVIDER_CHAIN"] ?? "openrouter").split(',').map(s => s.trim()).filter(Boolean),
     ollamaHost: process.env["OLLAMA_HOST"],
-    maxToolIterations: Number(process.env["MAX_TOOL_ITERATIONS"] ?? "10"),
+    maxToolIterations: Number(withBudgetDefault("MAX_TOOL_ITERATIONS", "10", "6", railwayBudgetMode)),
     openaiApiKey: requireEnv("OPENAI_API_KEY"),
     elevenlabsApiKey: requireEnv("ELEVENLABS_API_KEY"),
     elevenlabsVoiceId: process.env["ELEVENLABS_VOICE_ID"] ?? "21m00Tcm4TlvDq8ikWAM",
     mcpServersConfigPath: process.env["MCP_SERVERS_CONFIG"],
-    heartbeatEnabled: (process.env["HEARTBEAT_ENABLED"] ?? "true") === "true",
+    heartbeatEnabled: parseBooleanEnv(withBudgetDefault("HEARTBEAT_ENABLED", "true", "false", railwayBudgetMode), true),
     heartbeatTimezone: process.env["HEARTBEAT_TIMEZONE"] ?? "Europe/Berlin",
     heartbeatIntervalMinutes: Number(process.env["HEARTBEAT_INTERVAL_MINUTES"] ?? "60"),
+    webhookPort: Number(process.env["WEBHOOK_PORT"] ?? "3000"),
+    webhookJsonLimitKb: Number(process.env["WEBHOOK_JSON_LIMIT_KB"] ?? "32"),
+    webhookFormLimitKb: Number(process.env["WEBHOOK_FORM_LIMIT_KB"] ?? "8"),
+    webhookRateLimitWindowMs: Number(process.env["WEBHOOK_RATE_LIMIT_WINDOW_MS"] ?? "60000"),
+    webhookRateLimitMax: Number(process.env["WEBHOOK_RATE_LIMIT_MAX"] ?? "20"),
+    webhookSharedSecret: process.env["WEBHOOK_SHARED_SECRET"],
+    webhookRequireSharedSecret: (process.env["WEBHOOK_REQUIRE_SHARED_SECRET"] ?? (process.env["NODE_ENV"] === "production" ? "true" : "false")) === "true",
+    telegramNotifyCycleResults: (process.env["TELEGRAM_NOTIFY_CYCLE_RESULTS"] ?? "true") === "true",
+    telegramNotifyCycleStarts: (process.env["TELEGRAM_NOTIFY_CYCLE_STARTS"] ?? "true") === "true",
+    telegramNotifyTradeEvents: (process.env["TELEGRAM_NOTIFY_TRADE_EVENTS"] ?? "true") === "true",
+    telegramNotifyFastCycleSkips: (process.env["TELEGRAM_NOTIFY_FAST_CYCLE_SKIPS"] ?? "true") === "true",
+    telegramNotifyTokenUsage: (process.env["TELEGRAM_NOTIFY_TOKEN_USAGE"] ?? "true") === "true",
     alpacaApiKey: requireEnv("ALPACA_API_KEY"),
     alpacaApiSecret: requireEnv("ALPACA_API_SECRET"),
     alpacaBaseUrl: process.env["ALPACA_BASE_URL"] ?? "https://paper-api.alpaca.markets",
     alpacaDataUrl: process.env["ALPACA_DATA_URL"] ?? "https://data.alpaca.markets",
-    tradingCycleHours: Number(process.env["TRADING_CYCLE_HOURS"] ?? "3"),
-    reflectionCycleHours: Number(process.env["REFLECTION_CYCLE_HOURS"] ?? "24"),
-    tradingMaxToolIterations: Number(process.env["TRADING_MAX_TOOL_ITERATIONS"] ?? "40"),
-    reflectionMaxToolIterations: Number(process.env["REFLECTION_MAX_TOOL_ITERATIONS"] ?? "8"),
-    tradingThinking: process.env["TRADING_THINKING"] ?? "medium",
-    lightCycleEnabled: (process.env["LIGHT_CYCLE_ENABLED"] ?? "true") === "true",
-    lightCycleIntervalMinutes: Number(process.env["LIGHT_CYCLE_INTERVAL_MINUTES"] ?? "1"),
-    ultraLightCycleEnabled: (process.env["ULTRA_LIGHT_CYCLE_ENABLED"] ?? "true") === "true",
-    ultraLightCycleIntervalMinutes: Number(process.env["ULTRA_LIGHT_CYCLE_INTERVAL_MINUTES"] ?? "1"),
+    tradingCycleHours: Number(withBudgetDefault("TRADING_CYCLE_HOURS", "1", "1", railwayBudgetMode)),
+    reflectionCycleHours: Number(withBudgetDefault("REFLECTION_CYCLE_HOURS", "24", "24", railwayBudgetMode)),
+    tradingMaxToolIterations: Number(withBudgetDefault("TRADING_MAX_TOOL_ITERATIONS", "40", "12", railwayBudgetMode)),
+    reflectionMaxToolIterations: Number(withBudgetDefault("REFLECTION_MAX_TOOL_ITERATIONS", "8", "4", railwayBudgetMode)),
+    tradingThinking: withBudgetDefault("TRADING_THINKING", "medium", "off", railwayBudgetMode),
+    lightCycleEnabled: parseBooleanEnv(withBudgetDefault("LIGHT_CYCLE_ENABLED", "true", "true", railwayBudgetMode), true),
+    lightCycleIntervalMinutes: Number(withBudgetDefault("LIGHT_CYCLE_INTERVAL_MINUTES", "5", "5", railwayBudgetMode)),
+    ultraLightCycleEnabled: parseBooleanEnv(withBudgetDefault("ULTRA_LIGHT_CYCLE_ENABLED", "true", "true", railwayBudgetMode), true),
+    ultraLightCycleIntervalMinutes: Number(withBudgetDefault("ULTRA_LIGHT_CYCLE_INTERVAL_MINUTES", "1", "1", railwayBudgetMode)),
     lightLlmModel: process.env["LIGHT_LLM_MODEL"],
-    lightLlmThinking: process.env["LIGHT_LLM_THINKING"] ?? "off",
-    lightLlmMaxToolIterations: Number(process.env["LIGHT_LLM_MAX_TOOL_ITERATIONS"] ?? "5"),
-    lightLlmMaxInputTokens: Number(process.env["LIGHT_LLM_MAX_INPUT_TOKENS"] ?? "10000"),
-    lightLlmMaxOutputTokens: Number(process.env["LIGHT_LLM_MAX_OUTPUT_TOKENS"] ?? "800"),
-    autoDeployBuysEnabled: (process.env["AUTO_DEPLOY_BUYS_ENABLED"] ?? "true") === "true",
+    lightLlmThinking: withBudgetDefault("LIGHT_LLM_THINKING", "off", "off", railwayBudgetMode),
+    lightLlmMaxToolIterations: Number(withBudgetDefault("LIGHT_LLM_MAX_TOOL_ITERATIONS", "5", "3", railwayBudgetMode)),
+    lightLlmMaxInputTokens: Number(withBudgetDefault("LIGHT_LLM_MAX_INPUT_TOKENS", "10000", "3000", railwayBudgetMode)),
+    lightLlmMaxOutputTokens: Number(withBudgetDefault("LIGHT_LLM_MAX_OUTPUT_TOKENS", "800", "300", railwayBudgetMode)),
+    autoDeployBuysEnabled: parseBooleanEnv(withBudgetDefault("AUTO_DEPLOY_BUYS_ENABLED", "true", "false", railwayBudgetMode), true),
     autoDeployBuysPerCycle: Number(process.env["AUTO_DEPLOY_BUYS_PER_CYCLE"] ?? "2"),
     autoDeployCashThreshold: Number(process.env["AUTO_DEPLOY_CASH_THRESHOLD"] ?? "0.40"),
     autoDeployTopUpCashThreshold: Number(process.env["AUTO_DEPLOY_TOPUP_CASH_THRESHOLD"] ?? "0.55"),

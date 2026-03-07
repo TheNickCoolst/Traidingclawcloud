@@ -1,13 +1,48 @@
 services:
-  app:
+  main:
     build: .
-    container_name: tradingclaw
+    container_name: tradingclaw-main
     restart: unless-stopped
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - ./.env:/app/.env
     env_file:
       - .env
+    environment:
+      TRADING_RUNTIME_ROLE: main
+      TELEGRAM_ENABLED: "true"
+      DAILY_LOG_DELIVERY_ENABLED: "true"
+      ESCALATION_SHARED_SECRET: ${ESCALATION_SHARED_SECRET}
+    ports:
+      - "3000:3000"
+
+  light:
+    build: .
+    container_name: tradingclaw-light
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TRADING_RUNTIME_ROLE: light
+      TELEGRAM_ENABLED: "false"
+      DAILY_LOG_DELIVERY_ENABLED: "false"
+      ESCALATION_MAIN_URL: http://main:3000/internal/escalate/main
+      ESCALATION_SHARED_SECRET: ${ESCALATION_SHARED_SECRET}
+    ports:
+      - "3001:3000"
+    depends_on:
+      - main
+
+  ultra:
+    build: .
+    container_name: tradingclaw-ultra
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TRADING_RUNTIME_ROLE: ultra
+      TELEGRAM_ENABLED: "false"
+      DAILY_LOG_DELIVERY_ENABLED: "false"
+      ESCALATION_LIGHT_URL: http://light:3000/internal/escalate/light
+      ESCALATION_SHARED_SECRET: ${ESCALATION_SHARED_SECRET}
+    ports:
+      - "3002:3000"
+    depends_on:
+      - light

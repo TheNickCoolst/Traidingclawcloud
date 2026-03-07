@@ -1,10 +1,9 @@
 ﻿/**
  * Trading Engine â€” Autonomous trading loop.
- * Runs on a configurable interval (default: every 3 hours).
+ * Runs on a configurable main cycle (default: every 1 hour).
  * Also runs daily self-reflection (default: every 24 hours).
  */
 import { config } from "../config.js";
-import { router } from "../channels/router.js";
 import { chat } from "../llm.js";
 import { getToolDefinitions } from "../tools/index.js";
 import { AgentLoop } from "../agent/loop.js";
@@ -15,6 +14,7 @@ import { scoreStock, validateBuySetup, checkExitCondition } from "./strategy.js"
 import { runWatchlistScreen } from "./screener.js";
 import { estimateTradingFeeUsd, evaluateDailyDrawdown, formatCurrentFeeTierSummary, getTradingFeeRate } from "./risk-controls.js";
 import { runSelfImproveCycle } from "./self-improve.js";
+import { notifyCycleResult, notifyCycleStart, notifyFastCycleResult } from "./telegram-reporter.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.js";
 import { setTradingExecutionContext } from "./tools.js";
 import fs from "fs";
@@ -22,8 +22,6 @@ import path from "path";
 import cron from "node-cron";
 
 let tradingInterval: any = null;
-let marketOpenInterval: any = null;
-let highActivityInterval: any = null;
 let reflectionInterval: NodeJS.Timeout | null = null;
 let weekendReviewInterval: NodeJS.Timeout | null = null;
 let lightInterval: NodeJS.Timeout | null = null;
@@ -33,11 +31,16 @@ let lightCycleRunning = false;
 let ultraLightCycleRunning = false;
 let reflectionCycleRunning = false;
 let lightCycleAbortRequested = false;
-const ENGINE_LOCK_PATH = path.join(process.cwd(), "data", "trading-engine.lock");
+const ENGINE_LOCK_PATH = path.join(process.cwd(), "data", `trading-engine-${config.runtimeRole}.lock`);
 const MAX_OPEN_POSITIONS = 7;
 const LIGHT_CYCLE_YIELD_TIMEOUT_MS = 12_000;
+const FAST_CYCLE_IDLE_CACHE_MS = 5 * 60 * 1000;
+const US_MARKET_TIMEZONE = "America/New_York";
+const US_MARKET_OPEN_MINUTES = (9 * 60) + 30;   // 09:30 ET
+const US_MARKET_CLOSE_MINUTES = 16 * 60;        // 16:00 ET (exclusive)
 let tradingCycleSequence = 0;
 let engineSignalHooksRegistered = false;
+let fastCycleIdleUntilMs = 0;
 let currentTradingCycleId: number | null = null;
 let lastTradingCycleStartedAt: string | null = null;
 let lastTradingCycleFinishedAt: string | null = null;
@@ -120,9 +123,7 @@ export interface TradingRuntimeSnapshot {
         lightCycleIntervalMinutes: number;
         ultraLightCycleEnabled: boolean;
         ultraLightCycleIntervalMinutes: number;
-        regularTradingCron: string;
-        marketOpenCron: string;
-        highActivityCron: string;
+        mainCycleCron: string;
         reflectionCron: string;
         weekendReviewCron: string;
         lightCycleCron: string | null;
@@ -150,14 +151,19 @@ async function waitForFastCycleYield(timeoutMs: number): Promise<boolean> {
 
 function getLightCycleCron(): string {
     const interval = Math.min(toPositiveInt(config.lightCycleIntervalMinutes, 1), 59);
-    if (interval <= 1) return "* 8-23,0,1 * * *";
-    return `*/${interval} 8-23,0,1 * * *`;
+    if (interval <= 1) return "* 9-15 * * 1-5";
+    return `*/${interval} 9-15 * * 1-5`;
 }
 
 function getUltraLightCycleCron(): string {
     const interval = Math.min(toPositiveInt(config.ultraLightCycleIntervalMinutes, 1), 59);
-    if (interval <= 1) return "* 8-23,0,1 * * *";
-    return `*/${interval} 8-23,0,1 * * *`;
+    if (interval <= 1) return "* 9-15 * * 1-5";
+    return `*/${interval} 9-15 * * 1-5`;
+}
+
+function getMainCycleCron(): string {
+    const hourInterval = Math.min(toPositiveInt(config.tradingCycleHours, 1), 12);
+    return `30 9-15/${hourInterval} * * 1-5`;
 }
 
 function getRuntimeMode(): TradingRuntimeMode {
@@ -173,7 +179,19 @@ function touchRuntimeActivity(at: string = new Date().toISOString()): void {
 }
 
 function getEngineTimezone(): string {
-    return config.heartbeatTimezone || "Europe/Berlin";
+    return US_MARKET_TIMEZONE;
+}
+
+function roleRunsMainCycles(): boolean {
+    return config.runtimeRole === "all" || config.runtimeRole === "main";
+}
+
+function roleRunsLightCycles(): boolean {
+    return config.lightCycleEnabled && (config.runtimeRole === "all" || config.runtimeRole === "light");
+}
+
+function roleRunsUltraLightCycles(): boolean {
+    return config.ultraLightCycleEnabled && (config.runtimeRole === "all" || config.runtimeRole === "ultra");
 }
 
 function getWeekendReviewCron(): string {
@@ -206,17 +224,15 @@ export function getTradingRuntimeSnapshot(): TradingRuntimeSnapshot {
             timezone: tz,
             tradingCycleHours: config.tradingCycleHours,
             reflectionCycleHours: config.reflectionCycleHours,
-            lightCycleEnabled: config.lightCycleEnabled,
+            lightCycleEnabled: roleRunsLightCycles(),
             lightCycleIntervalMinutes: toPositiveInt(config.lightCycleIntervalMinutes, 1),
-            ultraLightCycleEnabled: config.ultraLightCycleEnabled,
+            ultraLightCycleEnabled: roleRunsUltraLightCycles(),
             ultraLightCycleIntervalMinutes: toPositiveInt(config.ultraLightCycleIntervalMinutes, 1),
-            regularTradingCron: `0 8-15/${config.tradingCycleHours} * * *`,
-            marketOpenCron: "30 15 * * *",
-            highActivityCron: "30 16,17,18,19,20,21,22,23,0,1 * * *",
-            reflectionCron: "5 2 * * *",
-            weekendReviewCron: getWeekendReviewCron(),
-            lightCycleCron: config.lightCycleEnabled ? getLightCycleCron() : null,
-            ultraLightCycleCron: config.ultraLightCycleEnabled ? getUltraLightCycleCron() : null,
+            mainCycleCron: getMainCycleCron(),
+            reflectionCron: "55 15 * * 1-5",
+            weekendReviewCron: config.railwayBudgetMode ? "disabled_in_budget_mode" : getWeekendReviewCron(),
+            lightCycleCron: roleRunsLightCycles() ? getLightCycleCron() : null,
+            ultraLightCycleCron: roleRunsUltraLightCycles() ? getUltraLightCycleCron() : null,
         },
     };
 }
@@ -713,9 +729,9 @@ function parseBuyCandidatesFromToolResult(text: string): BuyCandidate[] {
         .slice(0, 20);
 }
 
-function isRegularBerlinSession(hour: number, minute: number): boolean {
+function isRegularUsSession(hour: number, minute: number): boolean {
     const totalMinutes = hour * 60 + minute;
-    return totalMinutes >= 930 && totalMinutes < 1320; // 15:30 - 22:00
+    return totalMinutes >= US_MARKET_OPEN_MINUTES && totalMinutes < US_MARKET_CLOSE_MINUTES;
 }
 
 function buildHardStopPrice(entryPrice: number, atr14: number): number {
@@ -978,7 +994,7 @@ async function runAutoDeploymentBuys(
     let remainingCash = cash;
     const actions: string[] = [];
     const tzStatus = getBotActivityStatus();
-    const extendedHours = !isRegularBerlinSession(tzStatus.hour, tzStatus.minute);
+    const extendedHours = !isRegularUsSession(tzStatus.hour, tzStatus.minute);
 
     for (const candidate of candidates) {
         if (actions.length >= maxNewBuys) break;
@@ -1111,22 +1127,23 @@ async function runAutoDeploymentBuys(
 }
 
 /**
- * Helper to check current time in Berlin.
- * Returns:
- * - active: true if 08:00 <= Berlin Time < 02:00 (next day)
- * - highActivity: true if 15:30 <= Berlin Time < 02:00 (next day)
+ * Check if current wall-clock time is inside regular US market hours
+ * (Mon-Fri, 09:30-16:00 America/New_York).
  */
 function getBotActivityStatus(): { active: boolean; highActivity: boolean; hour: number; minute: number } {
-    const tz = config.heartbeatTimezone || "Europe/Berlin";
+    const tz = US_MARKET_TIMEZONE;
     const now = new Date();
     const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: tz,
+        weekday: "short",
         hour: "numeric",
         minute: "numeric",
         hour12: false,
     });
     
     const parts = formatter.formatToParts(now);
+    const weekdayPart = parts.find(p => p.type === "weekday")?.value ?? "";
+    const isWeekday = ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekdayPart);
     const hourPart = parts.find(p => p.type === "hour")?.value;
     const minutePart = parts.find(p => p.type === "minute")?.value;
     
@@ -1134,14 +1151,10 @@ function getBotActivityStatus(): { active: boolean; highActivity: boolean; hour:
     const minute = parseInt(minutePart || "0", 10);
     const totalMinutes = hour * 60 + minute;
 
-    // 08:00 = 480 mins
-    // 15:30 = 930 mins
-    // 02:00 = 120 mins (next day)
-    
-    // Active from 08:00 to 02:00 (next day)
-    const active = totalMinutes >= 480 || totalMinutes < 120;
-    // High activity from 15:30 to 02:00 (next day)
-    const highActivity = totalMinutes >= 930 || totalMinutes < 120;
+    const active = isWeekday
+        && totalMinutes >= US_MARKET_OPEN_MINUTES
+        && totalMinutes < US_MARKET_CLOSE_MINUTES;
+    const highActivity = active;
 
     return { active, highActivity, hour, minute };
 }
@@ -1275,8 +1288,8 @@ POSITION SIZING (ATR-Based):
   â€¢ Cap: Maximum 7 open positions at any time (target: 5-7)
   â€¢ LIMIT orders with limit price within **0.2%** of current price (tight spread for fast fills)
   â€¢ For exits, use MARKET orders (speed over price)
-  â€¢ **EXTENDED HOURS (Pre-Market/After-Hours):** You MUST set \`extended_hours: true\` for all limit orders placed outside 15:30-22:00 Berlin time. Always use \`time_in_force: "day"\` for extended hours orders.
-  â€¢ **VOLUME CHECK:** In Pre-Market (10:00-15:30 Berlin), only buy if volume is already significant (check news/data).
+  â€¢ **EXTENDED HOURS (Pre-Market/After-Hours):** You MUST set \`extended_hours: true\` for all limit orders placed outside 09:30-16:00 America/New_York. Always use \`time_in_force: "day"\` for extended-hours limit orders.
+  â€¢ **VOLUME CHECK:** In US Pre-Market (before 09:30 ET), only buy if volume is already significant (check news/data).
 
 TRAILING STOP RULES:
   â€¢ ALWAYS use trail_price (NOT trail_percent) â€” set trail_price = round(2 Ã— ATR, 2)
@@ -1387,27 +1400,33 @@ CRITICAL TOOL CALLING RULE:
 You CANNOT see market data or watchlist results yet. You MUST actually call the tools (e.g. \`screen_watchlist\`, \`get_account\`) to get real data. DO NOT hallucinate prices, scores, or stocks. Always start your first response by calling \`get_account\` and \`get_positions\`, then choose \`screen_watchlist\` for normal mode or immediate position/news defense if daily loss guard is active.
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•`;
 
-const LIGHT_DECISION_SYSTEM_PROMPT = `You are TradingClaw v3.0 Light Decision Gate.
-You are making one fast-cycle decision from a broker snapshot only.
-Choose exactly one action:
-- MAIN: escalate to the full trading cycle immediately
-- LIGHT: run fast deterministic exit/protection management now
-- SKIP: do nothing this tick
+const LIGHT_DECISION_SYSTEM_PROMPT = `You are a professional algorithmic US stock day-trading decision gate.
+You are risk-averse, data-first, and never emotional.
+
+Use this framework in order:
+1) Trend/momentum
+2) Volume confirmation
+3) Support/resistance proximity
+4) Risk/volatility (range behavior)
+5) Decide only if at least two factors are clear
+
+Internal action mapping for this engine:
+- BUY intent -> MAIN (escalate to full cycle, because fast cycle must not open new buys)
+- SELL intent -> LIGHT (run deterministic exit/protection now)
+- HOLD intent -> SKIP
+
+Hard rules:
+- If signals are mixed or confidence < 0.65 -> SKIP
+- If risk is high and confidence < 0.80 -> SKIP
+- No new buy orders in fast cycle
 
 Return STRICT JSON only:
 {
   "decision": "MAIN|LIGHT|SKIP",
-  "reason": "short reason",
+  "reason": "one concise data-based sentence",
   "confidence": 0.0,
   "handover_context": "what main should continue with"
-}
-
-Decision policy:
-- Prefer SKIP when there are no open positions or no urgent risk.
-- Prefer LIGHT for exit management, stop placement, stop tightening, or take-profit defense on existing positions.
-- Prefer MAIN only when the snapshot is too ambiguous, structurally risky, or needs deeper multi-tool analysis.
-- Never recommend opening new positions or screening for buys.
-- Keep reason concise and factual.`;
+}`;
 
 const REFLECTION_SYSTEM_PROMPT = `You are TradingClaw performing a daily self-reflection on your trading performance.
 
@@ -1484,12 +1503,13 @@ async function runTradingCycle(handover?: TradingCycleHandover): Promise<string>
 
     const status = getBotActivityStatus();
     if (!status.active) {
-        const msg = `?? [Trading] Outside operating hours (${status.hour}:${status.minute}). Bot is offline until 08:00 Berlin time.`;
+        const msg = `?? [Trading] Outside US market hours (${status.hour}:${status.minute} ET). Bot is offline until 09:30 ET.`;
         console.log(msg);
         return msg;
     }
 
     tradingCycleRunning = true;
+    fastCycleIdleUntilMs = 0;
     lastEngineError = null;
     if (lightCycleRunning || ultraLightCycleRunning) {
         lightCycleAbortRequested = true;
@@ -1761,7 +1781,7 @@ async function runTradingCycle(handover?: TradingCycleHandover): Promise<string>
         const cashPercent = (cash / equity * 100).toFixed(1);
         const investedPercent = ((equity - cash) / equity * 100).toFixed(1);
         const cashWarning = drawdownStatus.breached
-            ? `\n?? CASH DEPLOYMENT OVERRIDDEN: Daily loss guard active. No new buys until next Berlin trading day.`
+            ? `\n?? CASH DEPLOYMENT OVERRIDDEN: Daily loss guard active. No new buys until next US trading day (America/New_York).`
             : (cash / equity) > 0.40
                 ? `\nðŸš¨ CASH ACTION REQUIRED: ${cashPercent}% cash (${investedPercent}% invested). Target: â‰¥60% invested. YOU MUST buy more stocks this cycle!`
                 : `\nâœ… Cash Utilization: ${investedPercent}% invested (target: â‰¥60%)`;
@@ -1877,7 +1897,7 @@ Now execute your trading workflow. Search for opportunities, research the net, d
                 safeResult += `\n\n?? Auto-deploy fallback failed: ${err.message}`;
             }
         } else if (drawdownStatus.breached) {
-            safeResult += `\n\n?? Daily loss guard active: auto-deploy buys disabled until next Berlin trading day. Defensive news-check + reflection mode enforced.`;
+            safeResult += `\n\n?? Daily loss guard active: auto-deploy buys disabled until next US trading day (America/New_York). Defensive news-check + reflection mode enforced.`;
         }
 
         const alpacaMainSummary = await buildAlpacaEndStateSummary("MAIN", account, positions, currentOpenOrders);
@@ -2060,26 +2080,6 @@ Please analyze your performance and provide lessons learned and specific improve
 }
 
 // â”€â”€ Engine Control â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function getAdminChatId(): number {
-    return Number(config.allowedUserIds[0] || 0);
-}
-
-/** Notify the admin via Telegram */
-async function notifyAdmin(message: string): Promise<void> {
-    const adminId = getAdminChatId();
-    if (!adminId) return;
-
-    try {
-        await router.send("telegram", {
-            chatId: adminId,
-            userId: adminId,
-            text: message.slice(0, 4000), // Telegram message limit
-        });
-    } catch (err: any) {
-        console.error("ðŸ“¢ [Trading] Failed to notify admin:", err.message);
-    }
-}
 
 function buildLightDecisionAudit(
     decision: LightDecisionResponse,
@@ -2345,6 +2345,21 @@ async function runFastCycle(mode: FastCycleMode): Promise<LightCycleResult> {
         console.log(`[Trading] ${summary}`);
         return { summary, triggerMain: false };
     }
+    if (Date.now() < fastCycleIdleUntilMs) {
+        const summary = `${cycleLabel} decision: SKIP (idle cache active, no portfolio risk detected).`;
+        persistFastCycleDecision(
+            mode,
+            summary,
+            buildLightDecisionAudit(
+                { decision: "SKIP", reason: "Fast-cycle idle cache active.", confidence: 1, handover_context: "" },
+                "skipped_idle_cache",
+                0,
+                lightOutputBudget
+            )
+        );
+        console.log(`[Trading] ${summary}`);
+        return { summary, triggerMain: false };
+    }
 
     setRunningFlag(mode, true);
     touchRuntimeActivity();
@@ -2381,6 +2396,29 @@ async function runFastCycle(mode: FastCycleMode): Promise<LightCycleResult> {
                 buildLightDecisionAudit(
                     { decision: "SKIP", reason: `${cycleLabel} cycle preempted because full cycle started.`, confidence: 1, handover_context: "" },
                     "skipped_guard",
+                    0,
+                    lightOutputBudget
+                ),
+                account,
+                positions
+            );
+            console.log(`[Trading] ${summary}`);
+            return { summary, triggerMain: false };
+        }
+
+        const hasOpenSellRisk = openOrders.some((order) => order.side === "sell");
+        if (positions.length > 0 || hasOpenSellRisk) {
+            fastCycleIdleUntilMs = 0;
+        }
+        if (positions.length === 0 && !hasOpenSellRisk) {
+            fastCycleIdleUntilMs = Date.now() + FAST_CYCLE_IDLE_CACHE_MS;
+            const summary = `${cycleLabel} decision: SKIP (no open positions; fast loop idle).`;
+            persistFastCycleDecision(
+                mode,
+                summary,
+                buildLightDecisionAudit(
+                    { decision: "SKIP", reason: "No open positions and no sell-side risk orders.", confidence: 1, handover_context: "" },
+                    "skipped_no_positions",
                     0,
                     lightOutputBudget
                 ),
@@ -2531,6 +2569,58 @@ async function runUltraLightCycle(): Promise<LightCycleResult> {
     return runFastCycle("ultra_light");
 }
 
+function buildEscalationHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+        "content-type": "application/json",
+    };
+    const sharedSecret = config.escalationSharedSecret?.trim();
+    if (sharedSecret) {
+        headers["x-tradingclaw-webhook-secret"] = sharedSecret;
+    }
+    return headers;
+}
+
+async function postEscalation(target: "main" | "light", handover: TradingCycleHandover): Promise<string> {
+    const url = target === "main" ? config.escalationMainUrl : config.escalationLightUrl;
+    if (!url) {
+        return `[Trading] Escalation ${target.toUpperCase()} skipped: no URL configured.`;
+    }
+
+    const timeoutMs = Math.max(1000, Math.floor(config.escalationRequestTimeoutMs));
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: buildEscalationHeaders(),
+            body: JSON.stringify(handover),
+            signal: controller.signal,
+        });
+        const responseText = await response.text();
+        if (!response.ok) {
+            return `[Trading] Escalation ${target.toUpperCase()} failed: HTTP ${response.status} ${responseText.slice(0, 200)}`;
+        }
+        return `[Trading] Escalation ${target.toUpperCase()} accepted: ${responseText.slice(0, 200)}`;
+    } catch (err: any) {
+        return `[Trading] Escalation ${target.toUpperCase()} failed: ${err.message}`;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function runMainEscalation(handover: TradingCycleHandover, sourceLabel: string): Promise<string> {
+    if (roleRunsMainCycles()) {
+        await notifyCycleStart("TRADING CYCLE", sourceLabel);
+        const fullResult = await runTradingCycle(handover);
+        logScheduledResult(sourceLabel, fullResult);
+        if (!fullResult.startsWith("??") && !fullResult.startsWith("?")) {
+            await notifyCycleResult("TRADING CYCLE COMPLETE", fullResult);
+        }
+        return fullResult;
+    }
+    return postEscalation("main", handover);
+}
+
 /** Start the autonomous trading engine */
 export async function startTradingEngine(): Promise<boolean> {
     if (!acquireEngineLock()) {
@@ -2544,6 +2634,7 @@ export async function startTradingEngine(): Promise<boolean> {
     console.log("â”‚     ðŸ“ˆ TradingClaw Trading Engine        â”‚");
     console.log("â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤");
     console.log(`â”‚  Mode:     PAPER TRADING                â”‚`);
+    console.log(`â”‚  Budget:   ${config.railwayBudgetMode ? "ON " : "OFF"}                          â”‚`);
     console.log(`â”‚  Cycle:    Every ${String(config.tradingCycleHours).padEnd(2)} hours              â”‚`);
     console.log(`â”‚  Reflect:  Every ${String(config.reflectionCycleHours).padEnd(2)} hours             â”‚`);
     console.log("â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜");
@@ -2558,106 +2649,105 @@ export async function startTradingEngine(): Promise<boolean> {
         return false;
     }
 
-    const tz = config.heartbeatTimezone || "Europe/Berlin";
+    const tz = getEngineTimezone();
 
-    // 1. Initial run after 30s
-    setTimeout(async () => {
-        const result = await runTradingCycle();
-        logScheduledResult("Initial run", result);
-        if (result.includes("All providers failed") || result.includes("Key limit exceeded")) {
-            await notifyAdmin(`ðŸš¨ **API Key Error**\n\nAlle OpenRouter API Keys sind erschÃ¶pft oder wurden blockiert! Bitte prÃ¼fe deine Limits oder schicke mir neue Keys.`);
-        } else if (!result.startsWith("??")) {
-            await notifyAdmin(`ðŸ“ˆ **Trading Cycle Complete**\n\n${result.slice(0, 3000)}`);
+    const mainCycleEnabled = roleRunsMainCycles();
+    const lightCycleEnabled = roleRunsLightCycles();
+    const ultraLightCycleEnabled = roleRunsUltraLightCycles();
+
+    // 1. Main cycle (hourly cadence by default) inside active window
+    if (mainCycleEnabled) {
+        tradingInterval = cron.schedule(getMainCycleCron(), async () => {
+            console.log("â° [Trading] Main cycle firing...");
+            await notifyCycleStart("TRADING CYCLE", "Scheduled regular cycle.");
+            const result = await runTradingCycle();
+            logScheduledResult("Main cycle", result);
+            if (!result.startsWith("??")) {
+                await notifyCycleResult("TRADING CYCLE COMPLETE", result);
+            }
+        }, { timezone: tz });
+
+        // 2. Daily reflection near US close (inside session)
+        reflectionInterval = cron.schedule(`55 15 * * 1-5`, async () => {
+            console.log("â° [Trading] Daily reflection cycle firing...");
+            await notifyCycleStart("DAILY REFLECTION", "24h review started.");
+            const result = await runReflectionCycle("daily");
+            logScheduledResult("Daily reflection", result);
+            await notifyCycleResult("DAILY REFLECTION", result);
+        }, { timezone: tz }) as any;
+
+        // 2b. Weekend review is disabled in budget mode to avoid off-session cost.
+        if (!config.railwayBudgetMode) {
+            weekendReviewInterval = cron.schedule(getWeekendReviewCron(), async () => {
+                console.log("â° [Trading] Weekend weekly review firing...");
+                await notifyCycleStart("WEEKEND WEEKLY REVIEW", "Weekend strategy review started.");
+                const result = await runReflectionCycle("weekly");
+                logScheduledResult("Weekend weekly review", result);
+                await notifyCycleResult("WEEKEND WEEKLY REVIEW", result);
+            }, { timezone: tz }) as any;
         }
-    }, 30_000);
+    }
 
-    // 2. Regular cycles (08:00 - 15:30)
-    const hourInterval = config.tradingCycleHours;
-    tradingInterval = cron.schedule(`0 8-15/${hourInterval} * * *`, async () => {
-        console.log("â° [Trading] Regular trading cycle firing...");
-        const result = await runTradingCycle();
-        logScheduledResult("Regular cycle", result);
-        if (!result.startsWith("??")) {
-            await notifyAdmin(`ðŸ“ˆ **Trading Cycle Complete**\n\n${result.slice(0, 3000)}`);
-        }
-    }, { timezone: tz });
-
-    // 3. HIGH ACTIVITY: "macht er bums" from 15:30 until 02:00 (end of After-Hours)
-    // 15:30 exactly (Regular Open)
-    marketOpenInterval = cron.schedule(`30 15 * * *`, async () => {
-        console.log("?? [Trading] US Market Open - High activity start!");
-        const result = await runTradingCycle();
-        logScheduledResult("US market open cycle", result);
-        await notifyAdmin(`?? **US MARKET OPEN BUMS** ??\n\n${result.slice(0, 3000)}`);
-    }, { timezone: tz });
-
-    // Every hour from 16:30 to 01:30 (covering rest of regular session and after-hours)
-    // Hours: 16, 17, 18, 19, 20, 21, 22, 23, 00, 01
-    highActivityInterval = cron.schedule(`30 16,17,18,19,20,21,22,23,0,1 * * *`, async () => {
-        console.log("?? [Trading] US High activity (Regular + After-Hours)...");
-        const result = await runTradingCycle();
-        logScheduledResult("US active-session cycle", result);
-        await notifyAdmin(`?? **US Active Session Cycle**\n\n${result.slice(0, 3000)}`);
-    }, { timezone: tz });
-
-    // 4. Daily reflection at 02:05 (end of the trading day)
-    reflectionInterval = cron.schedule(`5 2 * * *`, async () => {
-        console.log("â° [Trading] Daily reflection cycle firing...");
-        const result = await runReflectionCycle("daily");
-        logScheduledResult("Daily reflection", result);
-        await notifyAdmin(`ðŸ§  **Daily Trading Reflection**\n\n${result.slice(0, 3000)}`);
-    }, { timezone: tz }) as any;
-
-    // 4b. Weekend review on Saturday and Sunday at 12:05 Berlin time
-    weekendReviewInterval = cron.schedule(getWeekendReviewCron(), async () => {
-        console.log("â° [Trading] Weekend weekly review firing...");
-        const result = await runReflectionCycle("weekly");
-        logScheduledResult("Weekend weekly review", result);
-        await notifyAdmin(`ðŸ§  **Weekend Weekly Review**\n\n${result.slice(0, 3000)}`);
-    }, { timezone: tz }) as any;
-
-    // 5. Ultra-light cycle during active hours (08:00 - 02:00), interval configurable
-    if (config.ultraLightCycleEnabled) {
+    // 3. Ultra-light cycle during US regular trading hours
+    if (ultraLightCycleEnabled) {
         ultraLightInterval = cron.schedule(getUltraLightCycleCron(), async () => {
             const ultraResult = await runUltraLightCycle();
+            await notifyFastCycleResult("ultra_light", ultraResult.summary);
             if (ultraResult.triggerMain && ultraResult.handover) {
-                console.log("[Trading] Ultra-light decision escalated to main cycle.");
-                const fullResult = await runTradingCycle(ultraResult.handover);
-                logScheduledResult("Ultra-light -> main cycle", fullResult);
-                if (!fullResult.startsWith("??") && !fullResult.startsWith("?")) {
-                    await notifyAdmin(`?? **Trading Cycle Complete**\n\n${fullResult.slice(0, 3000)}`);
+                console.log("[Trading] Ultra-light decision escalated.");
+                if (config.runtimeRole === "ultra" && config.escalationLightUrl) {
+                    const escalation = await postEscalation("light", ultraResult.handover);
+                    logScheduledResult("Ultra-light -> light escalation", escalation);
+                    if (escalation.includes("failed")) {
+                        const fallback = await runMainEscalation(ultraResult.handover, `Escalated from ultra-light (fallback): ${ultraResult.handover.reason}`);
+                        if (fallback.startsWith("[Trading] Escalation")) {
+                            logScheduledResult("Ultra-light -> main escalation", fallback);
+                        }
+                    }
+                    return;
+                }
+
+                const result = await runMainEscalation(ultraResult.handover, `Escalated from ultra-light: ${ultraResult.handover.reason}`);
+                if (result.startsWith("[Trading] Escalation")) {
+                    logScheduledResult("Ultra-light -> main escalation", result);
                 }
             }
         }, { timezone: tz }) as any;
     }
 
-    // 6. Light cycle during active hours (08:00 - 02:00), interval configurable
-    if (config.lightCycleEnabled) {
+    // 4. Light cycle during US regular trading hours
+    if (lightCycleEnabled) {
         lightInterval = cron.schedule(getLightCycleCron(), async () => {
             const lightResult = await runLightCycle();
+            await notifyFastCycleResult("light", lightResult.summary);
             if (lightResult.triggerMain && lightResult.handover) {
-                console.log("?? [Trading] Light decision escalated to main cycle.");
-                const fullResult = await runTradingCycle(lightResult.handover);
-                logScheduledResult("Light -> main cycle", fullResult);
-                if (!fullResult.startsWith("??") && !fullResult.startsWith("?")) {
-                    await notifyAdmin(`?? **Trading Cycle Complete**\n\n${fullResult.slice(0, 3000)}`);
+                console.log("?? [Trading] Light decision escalated.");
+                const result = await runMainEscalation(lightResult.handover, `Escalated from light cycle: ${lightResult.handover.reason}`);
+                if (result.startsWith("[Trading] Escalation")) {
+                    logScheduledResult("Light -> main escalation", result);
                 }
             }
         }, { timezone: tz }) as any;
     }
 
-    console.log(`ðŸ“ˆ [Trading] Engine started with dynamic schedules [${tz}].`);
-    console.log(`   - 10:00: US Pre-Market Trading starts`);
-    console.log(`   - 15:30: US MARKET BUMS (Full Cycle)`);
-    console.log(`   - Until 02:00: After-Hours Trading`);
-    console.log(`   - Weekend Review: Saturday + Sunday 12:05 (${tz})`);
-    if (config.lightCycleEnabled) {
-        console.log(`   - Light Cycle: every ${toPositiveInt(config.lightCycleIntervalMinutes, 1)} minute(s), single OpenRouter decision + deterministic broker actions`);
+    console.log(`ðŸ“ˆ [Trading] Engine started with cost-optimized schedules [${tz}].`);
+    console.log(`   - Active window: Mon-Fri 09:30-16:00 (${tz})`);
+    console.log(`   - Runtime Role: ${config.runtimeRole}`);
+    console.log(`   - Main Cycle: ${mainCycleEnabled ? `every ${toPositiveInt(config.tradingCycleHours, 1)} hour(s)` : "disabled"}`);
+    if (!mainCycleEnabled) {
+        console.log(`   - Weekend Review: disabled (runtime role)`);
+    } else if (config.railwayBudgetMode) {
+        console.log(`   - Weekend Review: disabled in budget mode`);
+    } else {
+        console.log(`   - Weekend Review: Saturday + Sunday 12:05 (${tz})`);
+    }
+    if (lightCycleEnabled) {
+        console.log(`   - Light Cycle: every ${toPositiveInt(config.lightCycleIntervalMinutes, 1)} minute(s)`);
     } else {
         console.log(`   - Light Cycle: disabled`);
     }
-    if (config.ultraLightCycleEnabled) {
-        console.log(`   - Ultra-Light Cycle: every ${toPositiveInt(config.ultraLightCycleIntervalMinutes, 1)} minute(s), single OpenRouter decision + deterministic broker actions`);
+    if (ultraLightCycleEnabled) {
+        console.log(`   - Ultra-Light Cycle: every ${toPositiveInt(config.ultraLightCycleIntervalMinutes, 1)} minute(s)`);
     } else {
         console.log(`   - Ultra-Light Cycle: disabled`);
     }
@@ -2667,15 +2757,11 @@ export async function startTradingEngine(): Promise<boolean> {
 /** Stop the trading engine */
 export function stopTradingEngine(): void {
     if (tradingInterval) tradingInterval.stop();
-    if (marketOpenInterval) marketOpenInterval.stop();
-    if (highActivityInterval) highActivityInterval.stop();
     if (reflectionInterval) (reflectionInterval as any).stop();
     if (weekendReviewInterval) (weekendReviewInterval as any).stop();
     if (lightInterval) (lightInterval as any).stop();
     if (ultraLightInterval) (ultraLightInterval as any).stop();
     tradingInterval = null;
-    marketOpenInterval = null;
-    highActivityInterval = null;
     reflectionInterval = null;
     weekendReviewInterval = null;
     lightInterval = null;
@@ -2685,6 +2771,7 @@ export function stopTradingEngine(): void {
     ultraLightCycleRunning = false;
     reflectionCycleRunning = false;
     lightCycleAbortRequested = false;
+    fastCycleIdleUntilMs = 0;
     currentTradingCycleId = null;
     touchRuntimeActivity();
     setTradingExecutionContext("default");
@@ -2693,13 +2780,33 @@ export function stopTradingEngine(): void {
 }
 
 /** Manually trigger a trading cycle (e.g. from Telegram command) */
-export async function manualTradingCycle(): Promise<string> {
-    return runTradingCycle();
+export async function manualTradingCycle(handover?: {
+    source?: "light" | "ultra_light";
+    reason?: string;
+    context?: string;
+    confidence?: number;
+}): Promise<string> {
+    if (!handover) {
+        return runTradingCycle();
+    }
+    const normalized: TradingCycleHandover = {
+        source: handover.source === "ultra_light" ? "ultra_light" : "light",
+        reason: handover.reason?.trim() || "Escalated cycle request",
+        context: handover.context?.trim() || "",
+        confidence: Number.isFinite(handover.confidence) ? Number(handover.confidence) : 0.5,
+        decidedAt: new Date().toISOString(),
+    };
+    return runTradingCycle(normalized);
 }
 
 /** Manually trigger a reflection cycle */
 export async function manualReflectionCycle(): Promise<string> {
     return runReflectionCycle();
+}
+
+/** Manually trigger a light cycle (for ultra->light escalation services) */
+export async function manualLightCycle(): Promise<{ summary: string; triggerMain: boolean; handover?: { source: "light" | "ultra_light"; reason: string; context: string; confidence: number; decidedAt: string } }> {
+    return runLightCycle();
 }
 
 /** Get a quick status summary */

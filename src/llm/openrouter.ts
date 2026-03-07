@@ -5,22 +5,20 @@ import type { IProvider, ChatOptions, ChatCompletionMessage } from "./providers.
 export class OpenRouterProvider implements IProvider {
     id = "openrouter";
 
-    /** All available API keys — rotates through on failure */
     private apiKeys: string[];
-    private currentKeyIndex = 0;
     private clients: Map<number, OpenAI> = new Map();
+    private keyUsageTotals: number[];
 
     constructor() {
-        // Parse comma-separated keys from config
         this.apiKeys = config.openrouterApiKey
             .split(",")
-            .map(k => k.trim())
+            .map((k) => k.trim())
             .filter(Boolean);
+        this.keyUsageTotals = new Array(this.apiKeys.length).fill(0);
 
-        console.log(`🔑 [OpenRouter] Loaded ${this.apiKeys.length} API key(s)`);
+        console.log(`[OpenRouter] Loaded ${this.apiKeys.length} API key(s)`);
     }
 
-    /** Get or create an OpenAI client for the given key index */
     private getClient(keyIndex: number): OpenAI {
         if (!this.clients.has(keyIndex)) {
             this.clients.set(keyIndex, new OpenAI({
@@ -35,22 +33,40 @@ export class OpenRouterProvider implements IProvider {
         return this.clients.get(keyIndex)!;
     }
 
-    /** Rotate to the next API key */
-    private rotateKey(): void {
-        const oldIndex = this.currentKeyIndex;
-        this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
-        console.log(`🔄 [OpenRouter] Rotated API key: #${oldIndex + 1} → #${this.currentKeyIndex + 1}`);
+    private getRolePriorityOffset(total: number): number {
+        if (total <= 1) return 0;
+        if (config.runtimeRole === "ultra") return 0;
+        if (config.runtimeRole === "light") return Math.min(1, total - 1);
+        return Math.min(2, total - 1);
+    }
+
+    // ultra: least-used first, then light, then main/all.
+    private buildKeyAttemptOrder(): number[] {
+        const indices = this.apiKeys.map((_k, i) => i);
+        indices.sort((a, b) => {
+            const delta = this.keyUsageTotals[a] - this.keyUsageTotals[b];
+            if (delta !== 0) return delta;
+            return a - b;
+        });
+
+        const offset = this.getRolePriorityOffset(indices.length);
+        if (offset <= 0) return indices;
+        return indices.slice(offset).concat(indices.slice(0, offset));
+    }
+
+    private getCycleModeTag(): string {
+        if (config.runtimeRole === "ultra") return "ultra_light";
+        if (config.runtimeRole === "light") return "light";
+        return "main";
     }
 
     async complete(options: ChatOptions): Promise<ChatCompletionMessage> {
         const messages = [...options.messages];
 
-        // Add system prompt as first message
         if (options.systemPrompt) {
             messages.unshift({ role: "system", content: options.systemPrompt });
         }
 
-        // Apply thinking mapping prefix if explicitly requested
         if (options.thinking && options.thinking !== "off") {
             const extraPrompt = `[SYSTEM INSTRUCTION: Please provide a ${options.thinking}-level deeply reasoned output before answering. Map out your thoughts clearly.]`;
             if (options.systemPrompt) {
@@ -62,11 +78,11 @@ export class OpenRouterProvider implements IProvider {
 
         const model = options.modelOverride ?? config.model;
         const maxTokens = Math.max(32, Math.floor(options.maxTokens ?? 4096));
+        const attemptOrder = this.buildKeyAttemptOrder();
 
-        // Try each API key starting from current, rotating on failure
         let lastError: any;
-        for (let attempt = 0; attempt < this.apiKeys.length; attempt++) {
-            const keyIndex = (this.currentKeyIndex + attempt) % this.apiKeys.length;
+        for (let attempt = 0; attempt < attemptOrder.length; attempt++) {
+            const keyIndex = attemptOrder[attempt];
             const client = this.getClient(keyIndex);
 
             try {
@@ -82,31 +98,32 @@ export class OpenRouterProvider implements IProvider {
                     throw new Error(`OpenRouter: No response from model ${model}`);
                 }
 
-                // Log token usage
                 if (response.usage) {
+                    this.keyUsageTotals[keyIndex] += response.usage.total_tokens;
                     import("../db.js").then(({ logTokenUsage }) => {
                         logTokenUsage(
                             "openrouter",
                             model,
                             response.usage!.prompt_tokens,
                             response.usage!.completion_tokens,
-                            response.usage!.total_tokens
+                            response.usage!.total_tokens,
+                            {
+                                apiKeySlot: keyIndex + 1,
+                                runtimeRole: config.runtimeRole,
+                                cycleMode: this.getCycleModeTag(),
+                            }
                         );
-                    }).catch(err => console.error("Failed to load db for token logging", err));
+                    }).catch((err) => console.error("Failed to load db for token logging", err));
                 }
 
-                // Success — update current key index for next call (round-robin)
-                this.currentKeyIndex = (keyIndex + 1) % this.apiKeys.length;
                 return choice.message;
-
             } catch (err: any) {
                 const status = err?.status || err?.response?.status || "";
-                console.warn(`⚠️ [OpenRouter] Key #${keyIndex + 1} failed (${status}): ${err.message}`);
+                console.warn(`[OpenRouter] Key #${keyIndex + 1} failed (${status}): ${err.message}`);
                 lastError = err;
 
-                // Only rotate on rate limit / auth / server errors
-                if (attempt < this.apiKeys.length - 1) {
-                    console.log(`🔄 [OpenRouter] Trying next key...`);
+                if (attempt < attemptOrder.length - 1) {
+                    console.log("[OpenRouter] Trying next key...");
                 }
             }
         }

@@ -139,12 +139,18 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     provider TEXT NOT NULL,
     model TEXT NOT NULL,
+    api_key_slot INTEGER,
+    runtime_role TEXT,
+    cycle_mode TEXT,
     prompt_tokens INTEGER NOT NULL,
     completion_tokens INTEGER NOT NULL,
     total_tokens INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+try { db.exec("ALTER TABLE token_usage ADD COLUMN api_key_slot INTEGER;"); } catch (e) { }
+try { db.exec("ALTER TABLE token_usage ADD COLUMN runtime_role TEXT;"); } catch (e) { }
+try { db.exec("ALTER TABLE token_usage ADD COLUMN cycle_mode TEXT;"); } catch (e) { }
 
 // ── Database Operations ──────────────────────────────────────────────────────
 
@@ -192,8 +198,8 @@ const stmts = {
   `),
   deleteSession: db.prepare("DELETE FROM sessions WHERE id = ?"),
   logTokenUsage: db.prepare(`
-    INSERT INTO token_usage (provider, model, prompt_tokens, completion_tokens, total_tokens)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO token_usage (provider, model, api_key_slot, runtime_role, cycle_mode, prompt_tokens, completion_tokens, total_tokens)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `),
   getUsageStats: db.prepare(`
     SELECT 
@@ -289,9 +295,19 @@ export function deleteSession(id: string): boolean {
 
 // ── Token Usage Operations ───────────────────────────────────────────────────
 
-export function logTokenUsage(provider: string, model: string, promptTokens: number, completionTokens: number, totalTokens: number) {
+export function logTokenUsage(
+  provider: string,
+  model: string,
+  promptTokens: number,
+  completionTokens: number,
+  totalTokens: number,
+  meta?: { apiKeySlot?: number; runtimeRole?: string; cycleMode?: string }
+) {
   try {
-    stmts.logTokenUsage.run(provider, model, promptTokens, completionTokens, totalTokens);
+    const keySlot = Number.isFinite(meta?.apiKeySlot) ? Number(meta?.apiKeySlot) : null;
+    const runtimeRole = meta?.runtimeRole ? String(meta.runtimeRole) : null;
+    const cycleMode = meta?.cycleMode ? String(meta.cycleMode) : null;
+    stmts.logTokenUsage.run(provider, model, keySlot, runtimeRole, cycleMode, promptTokens, completionTokens, totalTokens);
   } catch (err) {
     console.error("⚠️ Failed to log token usage:", err);
   }

@@ -54,11 +54,11 @@ npm install
 npm run dev
 \`\`\`
 
-Local dashboard:
-- `npm run dev` and `npm start` also expose a read-only observer UI at `http://127.0.0.1:3000/`
-- Dashboard routes are localhost-only
-- Webhooks remain available under `/webhook/:triggerId`
+Webhook + Telegram automation:
+- `npm run dev` and `npm start` expose the webhook listener on `http://127.0.0.1:3000/webhook/:triggerId`
+- The web UI is disabled; Telegram is the active reporting surface
 - Weekend review runs automatically on Saturday and Sunday at 12:05 Berlin time
+- Production security envs support webhook shared-secret enforcement, route rate limits, strict body limits, and verbose Telegram trading notifications
 
 ### Docker & Edge Proxies
 TradingClaw ships with a native Alpine Node.js `Dockerfile` binding Chromium binaries directly for headless scraping.

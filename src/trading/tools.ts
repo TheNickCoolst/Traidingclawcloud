@@ -486,8 +486,8 @@ registerTool(
         required: [],
     },
     async () => {
-        if (tradingExecutionContext === "light") {
-            return "RISK GUARD BLOCKED: screen_watchlist is disabled during light cycle.";
+        if (tradingExecutionContext === "light" || tradingExecutionContext === "ultra_light") {
+            return "RISK GUARD BLOCKED: screen_watchlist is disabled during fast cycles.";
         }
         try {
             const screen = await runWatchlistScreen();
