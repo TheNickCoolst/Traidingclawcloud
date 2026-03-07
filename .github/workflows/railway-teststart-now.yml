@@ -1,0 +1,49 @@
+name: Railway Test Start Now
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/railway-teststart-now.yml"
+  workflow_dispatch:
+
+jobs:
+  teststart:
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_ENVIRONMENT: production
+      SERVICE_LIST: "tradingclaw-main tradingclaw-light tradingclaw-ultra"
+    steps:
+      - name: Validate required secrets
+        run: |
+          if [ -z "${RAILWAY_TOKEN}" ] || [ -z "${RAILWAY_PROJECT_ID}" ]; then
+            echo "Missing RAILWAY_TOKEN or RAILWAY_PROJECT_ID repository secret."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Link project context
+        run: railway link --project "${RAILWAY_PROJECT_ID}" --environment "${RAILWAY_ENVIRONMENT}"
+
+      - name: Start all services
+        run: |
+          set -euo pipefail
+          for svc in ${SERVICE_LIST}; do
+            status_line="$(railway service status --service "$svc" | tr -d '\r' | grep 'Status:' || true)"
+            status="${status_line#Status: }"
+            echo "Service $svc status: ${status:-unknown}"
+            if [ "$status" = "NO DEPLOYMENT" ]; then
+              echo "Starting $svc..."
+              railway up --service "$svc" --detach
+            else
+              echo "$svc already deployed. Skip."
+            fi
+          done
