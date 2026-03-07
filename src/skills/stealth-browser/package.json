@@ -1,0 +1,13 @@
+{
+    "name": "stealth-browser-skill",
+    "version": "1.0.0",
+    "description": "Secure Dockerized Stealth Browser MVP",
+    "type": "module",
+    "main": "server.js",
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.1.0",
+        "puppeteer": "^24.3.0",
+        "puppeteer-extra": "^3.3.6",
+        "puppeteer-extra-plugin-stealth": "^2.11.2"
+    }
+}

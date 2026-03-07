@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TradingClaw Control View</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">Local Observer</p>
+                <h1>TradingClaw</h1>
+                <p class="hero-text">Console-style local view of what the bot is doing right now, what it just did, and why.</p>
+            </div>
+            <div class="hero-live" id="hero-live">
+                <div class="status-pill">Loading status...</div>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <section class="panel panel-wide">
+                <div class="panel-head">
+                    <div>
+                        <h2>Console Stream</h2>
+                        <p>Structured from today's application log</p>
+                    </div>
+                    <p id="overview-generated-at">Loading...</p>
+                </div>
+                <div class="console-highlights" id="console-highlights"></div>
+                <div class="console-stream" id="console-stream"></div>
+            </section>
+
+            <section class="panel panel-wide" id="overview-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Live Overview</h2>
+                        <p>Account, runtime and recent bot activity</p>
+                    </div>
+                </div>
+                <div class="metric-grid" id="metric-grid"></div>
+                <div class="split-grid">
+                    <div>
+                        <h3>Current Bot Context</h3>
+                        <div id="activity-summary" class="stacked-cards"></div>
+                    </div>
+                    <div>
+                        <h3>Engine Details</h3>
+                        <div id="runtime-details" class="key-value-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Positions</h2>
+                    <p id="positions-count">0</p>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Qty</th>
+                                <th>Entry</th>
+                                <th>Now</th>
+                                <th>P/L</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Open Orders</h2>
+                    <p id="orders-count">0</p>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Side</th>
+                                <th>Symbol</th>
+                                <th>Qty</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-head">
+                    <div>
+                        <h2>Cycle Timeline</h2>
+                        <p>Structured history with decision payloads and snapshots</p>
+                    </div>
+                    <div class="filter-row">
+                        <button class="filter-button active" data-cycle-filter="all">All</button>
+                        <button class="filter-button" data-cycle-filter="trading">Trading</button>
+                        <button class="filter-button" data-cycle-filter="light">Light</button>
+                        <button class="filter-button" data-cycle-filter="ultra_light">Ultra Light</button>
+                        <button class="filter-button" data-cycle-filter="reflection">Reflection</button>
+                    </div>
+                </div>
+                <div id="cycle-timeline" class="timeline"></div>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-head">
+                    <h2>Trades</h2>
+                    <p>Recent execution and protection actions</p>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Side</th>
+                                <th>Symbol</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Reasoning</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Reflection</h2>
+                    <p>Last learning loop</p>
+                </div>
+                <div id="reflection-card" class="reflection-card"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Weekend Review</h2>
+                    <p>Weekly improvements for the next market week</p>
+                </div>
+                <div id="weekly-review-card" class="reflection-card"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Token Usage</h2>
+                    <p>Recent API load</p>
+                </div>
+                <div id="token-usage" class="key-value-list"></div>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-head">
+                    <h2>Raw Logs</h2>
+                    <p>Full tails for app and cycle logs</p>
+                </div>
+                <div class="logs-grid">
+                    <div>
+                        <h3 id="today-log-label">Today</h3>
+                        <pre id="today-log" class="log-box"></pre>
+                    </div>
+                    <div>
+                        <h3 id="cycle-log-label">Cycle Log</h3>
+                        <pre id="cycle-log" class="log-box"></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/app.js" defer></script>
+</body>
+</html>

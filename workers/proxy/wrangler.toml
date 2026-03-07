@@ -1,0 +1,13 @@
+name = "tradingclaw-webhook-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-03-01"
+
+# To deploy this to your Cloudflare account, run:
+# npm install -g wrangler
+# wrangler deploy
+
+[vars]
+# Change this via Cloudflare dashboard or here to point to your physical home IP routing to TradingClaw
+FORWARD_URL = "http://YOUR_HOME_IP:3000"
+# Simple security token to prevent raw internet scanners from hitting your webhook bridge
+SECRET_TOKEN = "your-secure-token-here"

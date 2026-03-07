@@ -1,0 +1,410 @@
+📡 Watchlist Screen — 2026-03-06T15:39:32.085Z
+Screened: 464/503 stocks (attempted 503, stale filtered 4, runtime 14.2s)
+
+🟢 BUY SIGNALS (176):
+  DOC [Real Estate]: $17.12 | Score: 4/6 | RSI: 47.2 | MACD Hist: 0.010 | ATR: $0.44 | Vol: 0.09×
+    → ✅ Score 4/6: RSI 47.2 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  ABBV [Healthcare]: $228.83 | Score: 4/6 | RSI: 51.4 | MACD Hist: 0.287 | ATR: $5.75 | Vol: 0.25×
+    → ✅ Score 4/6: RSI 51.4 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  SMCI [Technology]: $32.13 | Score: 4/6 | RSI: 51.7 | MACD Hist: 0.045 | ATR: $1.88 | Vol: 0.16×
+    → ✅ Score 4/6: RSI 51.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  CNC [Healthcare]: $43.51 | Score: 4/6 | RSI: 52.7 | MACD Hist: 0.176 | ATR: $1.57 | Vol: 0.13×
+    → ✅ Score 4/6: RSI 52.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  ALL [Financials]: $209.93 | Score: 4/6 | RSI: 52.8 | MACD Hist: 0.132 | ATR: $4.57 | Vol: 0.14×
+    → ✅ Score 4/6: RSI 52.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  ANET [Technology]: $137.72 | Score: 4/6 | RSI: 53.0 | MACD Hist: 0.213 | ATR: $6.37 | Vol: 0.10×
+    → ✅ Score 4/6: RSI 53.0 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  FFIV [Technology]: $279.62 | Score: 4/6 | RSI: 53.1 | MACD Hist: 0.353 | ATR: $8.83 | Vol: 0.05×
+    → ✅ Score 4/6: RSI 53.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  MHK [Materials]: $106.17 | Score: 3/6 | RSI: 26.9 | MACD Hist: -2.802 | ATR: $4.33 | Vol: 0.26×
+    → ✅ Score 3/6: RSI 26.9<35 (+2), EMA50>EMA200 uptrend (+1)
+  PPG [Materials]: $107.74 | Score: 3/6 | RSI: 27.5 | MACD Hist: -2.585 | ATR: $3.54 | Vol: 0.26×
+    → ✅ Score 3/6: RSI 27.5<35 (+2), EMA50>EMA200 uptrend (+1)
+  MCHP [Technology]: $66.09 | Score: 3/6 | RSI: 28.2 | MACD Hist: -1.412 | ATR: $2.91 | Vol: 0.19×
+    → ✅ Score 3/6: RSI 28.2<35 (+2), EMA50>EMA200 uptrend (+1)
+  UPS [Industrials]: $100.84 | Score: 3/6 | RSI: 28.5 | MACD Hist: -1.997 | ATR: $3.30 | Vol: 0.29×
+    → ✅ Score 3/6: RSI 28.5<35 (+2), EMA50>EMA200 uptrend (+1)
+  SHW [Materials]: $327.53 | Score: 3/6 | RSI: 28.8 | MACD Hist: -4.426 | ATR: $8.98 | Vol: 0.28×
+    → ✅ Score 3/6: RSI 28.8<35 (+2), EMA50>EMA200 uptrend (+1)
+  MAS [Other]: $63.44 | Score: 3/6 | RSI: 29.9 | MACD Hist: -1.405 | ATR: $2.26 | Vol: 0.17×
+    → ✅ Score 3/6: RSI 29.9<35 (+2), EMA50>EMA200 uptrend (+1)
+  LUV [Industrials]: $41.78 | Score: 3/6 | RSI: 30.8 | MACD Hist: -1.361 | ATR: $2.04 | Vol: 0.39×
+    → ✅ Score 3/6: RSI 30.8<35 (+2), EMA50>EMA200 uptrend (+1)
+  CCL [Consumer Discretionary]: $25.86 | Score: 3/6 | RSI: 31.2 | MACD Hist: -0.744 | ATR: $1.51 | Vol: 0.42×
+    → ✅ Score 3/6: RSI 31.2<35 (+2), EMA50>EMA200 uptrend (+1)
+  WAT [Other]: $307.44 | Score: 3/6 | RSI: 31.6 | MACD Hist: 0.389 | ATR: $10.79 | Vol: 0.19×
+    → ✅ Score 3/6: RSI 31.6<35 (+2), MACD Hist>0 (+1)
+  TXN [Technology]: $194.73 | Score: 3/6 | RSI: 31.6 | MACD Hist: -3.793 | ATR: $6.22 | Vol: 0.19×
+    → ✅ Score 3/6: RSI 31.6<35 (+2), EMA50>EMA200 uptrend (+1)
+  AOS [Industrials]: $70.25 | Score: 3/6 | RSI: 31.8 | MACD Hist: -1.124 | ATR: $1.80 | Vol: 0.10×
+    → ✅ Score 3/6: RSI 31.8<35 (+2), EMA50>EMA200 uptrend (+1)
+  LOW [Consumer Discretionary]: $250.40 | Score: 3/6 | RSI: 31.9 | MACD Hist: -3.351 | ATR: $6.60 | Vol: 0.14×
+    → ✅ Score 3/6: RSI 31.9<35 (+2), EMA50>EMA200 uptrend (+1)
+  BSX [Healthcare]: $71.97 | Score: 3/6 | RSI: 32.0 | MACD Hist: 0.343 | ATR: $2.24 | Vol: 0.09×
+    → ✅ Score 3/6: RSI 32.0<35 (+2), MACD Hist>0 (+1)
+  AVY [Materials]: $179.29 | Score: 3/6 | RSI: 32.1 | MACD Hist: -1.940 | ATR: $3.67 | Vol: 0.15×
+    → ✅ Score 3/6: RSI 32.1<35 (+2), EMA50>EMA200 uptrend (+1)
+  SWK [Industrials]: $75.27 | Score: 3/6 | RSI: 32.2 | MACD Hist: -1.819 | ATR: $3.21 | Vol: 0.14×
+    → ✅ Score 3/6: RSI 32.2<35 (+2), EMA50>EMA200 uptrend (+1)
+  IP [Materials]: $39.69 | Score: 3/6 | RSI: 32.3 | MACD Hist: -0.826 | ATR: $1.80 | Vol: 0.17×
+    → ✅ Score 3/6: RSI 32.3<35 (+2), EMA50>EMA200 uptrend (+1)
+  WY [Other]: $24.20 | Score: 3/6 | RSI: 32.4 | MACD Hist: -0.171 | ATR: $0.62 | Vol: 0.27×
+    → ✅ Score 3/6: RSI 32.4<35 (+2), EMA50>EMA200 uptrend (+1)
+  VMC [Materials]: $277.50 | Score: 3/6 | RSI: 32.6 | MACD Hist: -3.818 | ATR: $9.20 | Vol: 0.13×
+    → ✅ Score 3/6: RSI 32.6<35 (+2), EMA50>EMA200 uptrend (+1)
+  BF.B [Consumer Staples]: $25.72 | Score: 3/6 | RSI: 32.7 | MACD Hist: -0.482 | ATR: $1.14 | Vol: 0.12×
+    → ✅ Score 3/6: RSI 32.7<35 (+2), EMA50>EMA200 uptrend (+1)
+  ON [Technology]: $58.48 | Score: 3/6 | RSI: 33.0 | MACD Hist: -1.505 | ATR: $2.83 | Vol: 0.29×
+    → ✅ Score 3/6: RSI 33.0<35 (+2), EMA50>EMA200 uptrend (+1)
+  PM [Consumer Staples]: $167.93 | Score: 3/6 | RSI: 33.1 | MACD Hist: -2.703 | ATR: $4.52 | Vol: 0.28×
+    → ✅ Score 3/6: RSI 33.1<35 (+2), EMA50>EMA200 uptrend (+1)
+  MLM [Materials]: $609.06 | Score: 3/6 | RSI: 33.3 | MACD Hist: -7.928 | ATR: $19.74 | Vol: 0.24×
+    → ✅ Score 3/6: RSI 33.3<35 (+2), EMA50>EMA200 uptrend (+1)
+  PNC [Financials]: $206.56 | Score: 3/6 | RSI: 33.3 | MACD Hist: -2.567 | ATR: $5.82 | Vol: 0.13×
+    → ✅ Score 3/6: RSI 33.3<35 (+2), EMA50>EMA200 uptrend (+1)
+  COO [Healthcare]: $77.99 | Score: 3/6 | RSI: 33.3 | MACD Hist: -0.517 | ATR: $2.05 | Vol: 0.50×
+    → ✅ Score 3/6: RSI 33.3<35 (+2), EMA50>EMA200 uptrend (+1)
+  RCL [Consumer Discretionary]: $270.37 | Score: 3/6 | RSI: 33.3 | MACD Hist: -6.224 | ATR: $14.60 | Vol: 0.34×
+    → ✅ Score 3/6: RSI 33.3<35 (+2), EMA50>EMA200 uptrend (+1)
+  MNST [Consumer Staples]: $76.22 | Score: 3/6 | RSI: 33.4 | MACD Hist: -1.058 | ATR: $1.73 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 33.4<35 (+2), EMA50>EMA200 uptrend (+1)
+  CFG [Financials]: $57.72 | Score: 3/6 | RSI: 33.7 | MACD Hist: -0.803 | ATR: $1.94 | Vol: 0.24×
+    → ✅ Score 3/6: RSI 33.7<35 (+2), EMA50>EMA200 uptrend (+1)
+  WSM [Consumer Discretionary]: $187.20 | Score: 3/6 | RSI: 33.8 | MACD Hist: -2.916 | ATR: $7.66 | Vol: 0.20×
+    → ✅ Score 3/6: RSI 33.8<35 (+2), EMA50>EMA200 uptrend (+1)
+  BAX [Healthcare]: $17.94 | Score: 3/6 | RSI: 33.8 | MACD Hist: -0.362 | ATR: $0.87 | Vol: 0.20×
+    → ✅ Score 3/6: RSI 33.8<35 (+2), EMA50>EMA200 uptrend (+1)
+  FITB [Financials]: $47.17 | Score: 3/6 | RSI: 33.8 | MACD Hist: -0.651 | ATR: $1.60 | Vol: 0.16×
+    → ✅ Score 3/6: RSI 33.8<35 (+2), EMA50>EMA200 uptrend (+1)
+  CLX [Consumer Staples]: $111.42 | Score: 3/6 | RSI: 33.9 | MACD Hist: -2.081 | ATR: $3.19 | Vol: 0.15×
+    → ✅ Score 3/6: RSI 33.9<35 (+2), EMA50>EMA200 uptrend (+1)
+  DHI [Consumer Discretionary]: $146.53 | Score: 3/6 | RSI: 34.1 | MACD Hist: -2.003 | ATR: $4.96 | Vol: 0.17×
+    → ✅ Score 3/6: RSI 34.1<35 (+2), EMA50>EMA200 uptrend (+1)
+  TMO [Healthcare]: $506.78 | Score: 3/6 | RSI: 34.4 | MACD Hist: 2.256 | ATR: $13.79 | Vol: 0.09×
+    → ✅ Score 3/6: RSI 34.4<35 (+2), MACD Hist>0 (+1)
+  RF [Financials]: $26.91 | Score: 3/6 | RSI: 34.4 | MACD Hist: -0.322 | ATR: $0.82 | Vol: 0.18×
+    → ✅ Score 3/6: RSI 34.4<35 (+2), EMA50>EMA200 uptrend (+1)
+  QCOM [Technology]: $136.40 | Score: 3/6 | RSI: 34.5 | MACD Hist: 0.297 | ATR: $4.00 | Vol: 0.12×
+    → ✅ Score 3/6: RSI 34.5<35 (+2), MACD Hist>0 (+1)
+  USB [Financials]: $52.23 | Score: 3/6 | RSI: 34.6 | MACD Hist: -0.627 | ATR: $1.59 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 34.6<35 (+2), EMA50>EMA200 uptrend (+1)
+  ECL [Materials]: $281.27 | Score: 3/6 | RSI: 34.8 | MACD Hist: -3.326 | ATR: $6.19 | Vol: 0.15×
+    → ✅ Score 3/6: RSI 34.8<35 (+2), EMA50>EMA200 uptrend (+1)
+  DOV [Industrials]: $209.25 | Score: 3/6 | RSI: 34.9 | MACD Hist: -3.050 | ATR: $5.29 | Vol: 0.29×
+    → ✅ Score 3/6: RSI 34.9<35 (+2), EMA50>EMA200 uptrend (+1)
+  NDSN [Industrials]: $272.96 | Score: 3/6 | RSI: 37.1 | MACD Hist: -3.250 | ATR: $6.11 | Vol: 0.07×
+    → ✅ Score 3/6: RSI 37.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  SLB [Energy]: $47.03 | Score: 3/6 | RSI: 38.3 | MACD Hist: -0.764 | ATR: $1.59 | Vol: 0.16×
+    → ✅ Score 3/6: RSI 38.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  IEX [Industrials]: $198.24 | Score: 3/6 | RSI: 40.4 | MACD Hist: -1.700 | ATR: $4.67 | Vol: 0.53×
+    → ✅ Score 3/6: RSI 40.4 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  PEP [Consumer Staples]: $157.07 | Score: 3/6 | RSI: 41.0 | MACD Hist: -1.688 | ATR: $3.31 | Vol: 0.22×
+    → ✅ Score 3/6: RSI 41.0 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  ITW [Industrials]: $277.49 | Score: 3/6 | RSI: 41.3 | MACD Hist: -2.998 | ATR: $5.57 | Vol: 0.39×
+    → ✅ Score 3/6: RSI 41.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  MRK [Healthcare]: $114.42 | Score: 3/6 | RSI: 42.3 | MACD Hist: -1.270 | ATR: $3.01 | Vol: 0.09×
+    → ✅ Score 3/6: RSI 42.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  ADI [Technology]: $322.60 | Score: 3/6 | RSI: 42.4 | MACD Hist: -4.428 | ATR: $10.25 | Vol: 0.14×
+    → ✅ Score 3/6: RSI 42.4 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  BALL [Materials]: $62.16 | Score: 3/6 | RSI: 42.5 | MACD Hist: -0.918 | ATR: $1.37 | Vol: 0.16×
+    → ✅ Score 3/6: RSI 42.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  HAS [Consumer Discretionary]: $94.06 | Score: 3/6 | RSI: 42.5 | MACD Hist: -1.224 | ATR: $2.51 | Vol: 0.12×
+    → ✅ Score 3/6: RSI 42.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  AME [Industrials]: $223.87 | Score: 3/6 | RSI: 42.5 | MACD Hist: -1.782 | ATR: $5.11 | Vol: 0.18×
+    → ✅ Score 3/6: RSI 42.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  SNA [Industrials]: $372.25 | Score: 3/6 | RSI: 42.8 | MACD Hist: -1.799 | ATR: $7.14 | Vol: 0.14×
+    → ✅ Score 3/6: RSI 42.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CAT [Industrials]: $693.60 | Score: 3/6 | RSI: 42.8 | MACD Hist: -11.642 | ATR: $26.65 | Vol: 0.22×
+    → ✅ Score 3/6: RSI 42.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  YUM [Other]: $157.93 | Score: 3/6 | RSI: 43.4 | MACD Hist: -1.061 | ATR: $2.98 | Vol: 0.12×
+    → ✅ Score 3/6: RSI 43.4 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  ENPH [Other]: $40.27 | Score: 3/6 | RSI: 43.6 | MACD Hist: -1.106 | ATR: $2.93 | Vol: 0.13×
+    → ✅ Score 3/6: RSI 43.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  STX [Technology]: $366.50 | Score: 3/6 | RSI: 44.0 | MACD Hist: -9.078 | ATR: $25.32 | Vol: 0.14×
+    → ✅ Score 3/6: RSI 44.0 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  FCX [Materials]: $61.04 | Score: 3/6 | RSI: 44.0 | MACD Hist: -0.741 | ATR: $3.07 | Vol: 0.37×
+    → ✅ Score 3/6: RSI 44.0 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  PCAR [Industrials]: $121.03 | Score: 3/6 | RSI: 44.1 | MACD Hist: -0.826 | ATR: $3.11 | Vol: 0.10×
+    → ✅ Score 3/6: RSI 44.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  SYY [Consumer Staples]: $84.95 | Score: 3/6 | RSI: 44.1 | MACD Hist: -0.947 | ATR: $1.76 | Vol: 0.12×
+    → ✅ Score 3/6: RSI 44.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CL [Consumer Staples]: $91.56 | Score: 3/6 | RSI: 44.3 | MACD Hist: -0.998 | ATR: $1.87 | Vol: 0.44×
+    → ✅ Score 3/6: RSI 44.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  KLAC [Technology]: $1414.88 | Score: 3/6 | RSI: 44.5 | MACD Hist: -11.776 | ATR: $61.96 | Vol: 0.29×
+    → ✅ Score 3/6: RSI 44.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  NSC [Industrials]: $304.91 | Score: 3/6 | RSI: 44.6 | MACD Hist: -1.529 | ATR: $5.33 | Vol: 0.59×
+    → ✅ Score 3/6: RSI 44.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  AMCR [Materials]: $43.06 | Score: 3/6 | RSI: 44.9 | MACD Hist: -1.777 | ATR: $1.46 | Vol: 0.26×
+    → ✅ Score 3/6: RSI 44.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  PFE [Healthcare]: $26.40 | Score: 3/6 | RSI: 45.0 | MACD Hist: -0.143 | ATR: $0.55 | Vol: 0.21×
+    → ✅ Score 3/6: RSI 45.0 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  BEN [Financials]: $26.18 | Score: 3/6 | RSI: 45.1 | MACD Hist: -0.200 | ATR: $0.85 | Vol: 0.25×
+    → ✅ Score 3/6: RSI 45.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  PEG [Utilities]: $82.73 | Score: 3/6 | RSI: 45.1 | MACD Hist: -0.452 | ATR: $1.63 | Vol: 0.09×
+    → ✅ Score 3/6: RSI 45.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  ALB [Materials]: $164.01 | Score: 3/6 | RSI: 45.3 | MACD Hist: -2.058 | ATR: $9.75 | Vol: 0.62×
+    → ✅ Score 3/6: RSI 45.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CAH [Healthcare]: $217.27 | Score: 3/6 | RSI: 45.4 | MACD Hist: -1.493 | ATR: $5.05 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 45.4 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  DG [Consumer Discretionary]: $146.68 | Score: 3/6 | RSI: 45.6 | MACD Hist: -1.016 | ATR: $4.29 | Vol: 0.31×
+    → ✅ Score 3/6: RSI 45.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  TXT [Industrials]: $94.68 | Score: 3/6 | RSI: 45.6 | MACD Hist: -0.608 | ATR: $2.49 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 45.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  JBL [Industrials]: $249.24 | Score: 3/6 | RSI: 45.7 | MACD Hist: -2.681 | ATR: $10.48 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 45.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  BG [Consumer Staples]: $114.83 | Score: 3/6 | RSI: 45.7 | MACD Hist: -1.593 | ATR: $3.12 | Vol: 0.30×
+    → ✅ Score 3/6: RSI 45.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  JNJ [Healthcare]: $235.88 | Score: 3/6 | RSI: 45.7 | MACD Hist: -1.862 | ATR: $4.14 | Vol: 0.31×
+    → ✅ Score 3/6: RSI 45.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  KVUE [Consumer Staples]: $18.11 | Score: 3/6 | RSI: 46.0 | MACD Hist: -0.128 | ATR: $0.36 | Vol: 0.05×
+    → ✅ Score 3/6: RSI 46.0 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  JBHT [Industrials]: $217.58 | Score: 3/6 | RSI: 46.1 | MACD Hist: -1.166 | ATR: $6.91 | Vol: 0.26×
+    → ✅ Score 3/6: RSI 46.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CSX [Industrials]: $40.28 | Score: 3/6 | RSI: 46.1 | MACD Hist: -0.301 | ATR: $0.90 | Vol: 0.28×
+    → ✅ Score 3/6: RSI 46.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  NEM [Materials]: $117.35 | Score: 3/6 | RSI: 46.2 | MACD Hist: -1.427 | ATR: $5.63 | Vol: 0.20×
+    → ✅ Score 3/6: RSI 46.2 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  JCI [Industrials]: $133.89 | Score: 3/6 | RSI: 46.3 | MACD Hist: -1.709 | ATR: $3.56 | Vol: 0.25×
+    → ✅ Score 3/6: RSI 46.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  ADM [Consumer Staples]: $66.49 | Score: 3/6 | RSI: 46.3 | MACD Hist: -0.408 | ATR: $1.82 | Vol: 0.20×
+    → ✅ Score 3/6: RSI 46.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CB [Other]: $324.48 | Score: 3/6 | RSI: 46.4 | MACD Hist: -1.530 | ATR: $6.13 | Vol: 0.22×
+    → ✅ Score 3/6: RSI 46.4 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  TPR [Consumer Discretionary]: $145.31 | Score: 3/6 | RSI: 46.5 | MACD Hist: -1.736 | ATR: $5.23 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 46.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  MCD [Consumer Discretionary]: $323.81 | Score: 3/6 | RSI: 46.5 | MACD Hist: -1.350 | ATR: $5.47 | Vol: 0.13×
+    → ✅ Score 3/6: RSI 46.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CHD [Consumer Staples]: $98.86 | Score: 3/6 | RSI: 46.5 | MACD Hist: -0.935 | ATR: $2.01 | Vol: 0.13×
+    → ✅ Score 3/6: RSI 46.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  HST [Real Estate]: $19.27 | Score: 3/6 | RSI: 46.8 | MACD Hist: -0.098 | ATR: $0.59 | Vol: 0.32×
+    → ✅ Score 3/6: RSI 46.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  L [Financials]: $108.14 | Score: 3/6 | RSI: 46.9 | MACD Hist: -0.225 | ATR: $1.81 | Vol: 0.09×
+    → ✅ Score 3/6: RSI 46.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  WDC [Technology]: $256.49 | Score: 3/6 | RSI: 46.9 | MACD Hist: -5.858 | ATR: $19.79 | Vol: 0.18×
+    → ✅ Score 3/6: RSI 46.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  COR [Healthcare]: $357.76 | Score: 3/6 | RSI: 47.1 | MACD Hist: -0.904 | ATR: $8.52 | Vol: 0.13×
+    → ✅ Score 3/6: RSI 47.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  D [Utilities]: $62.54 | Score: 3/6 | RSI: 47.2 | MACD Hist: -0.377 | ATR: $1.25 | Vol: 0.08×
+    → ✅ Score 3/6: RSI 47.2 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  AMAT [Technology]: $341.01 | Score: 3/6 | RSI: 47.2 | MACD Hist: -5.191 | ATR: $16.16 | Vol: 0.20×
+    → ✅ Score 3/6: RSI 47.2 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  FDX [Industrials]: $361.57 | Score: 3/6 | RSI: 47.3 | MACD Hist: -4.481 | ATR: $8.85 | Vol: 0.22×
+    → ✅ Score 3/6: RSI 47.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CINF [Financials]: $163.22 | Score: 3/6 | RSI: 47.3 | MACD Hist: 0.110 | ATR: $3.26 | Vol: 0.14×
+    → ✅ Score 3/6: RSI 47.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1)
+  WELL [Real Estate]: $201.29 | Score: 3/6 | RSI: 47.3 | MACD Hist: -1.200 | ATR: $4.14 | Vol: 0.18×
+    → ✅ Score 3/6: RSI 47.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  DE [Industrials]: $586.20 | Score: 3/6 | RSI: 47.5 | MACD Hist: -8.628 | ATR: $17.63 | Vol: 0.13×
+    → ✅ Score 3/6: RSI 47.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  GE [Industrials]: $323.54 | Score: 3/6 | RSI: 47.5 | MACD Hist: -1.739 | ATR: $10.46 | Vol: 0.19×
+    → ✅ Score 3/6: RSI 47.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  TER [Technology]: $290.47 | Score: 3/6 | RSI: 47.6 | MACD Hist: -6.596 | ATR: $15.71 | Vol: 0.23×
+    → ✅ Score 3/6: RSI 47.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  MCK [Healthcare]: $921.12 | Score: 3/6 | RSI: 47.7 | MACD Hist: -6.780 | ATR: $23.64 | Vol: 0.23×
+    → ✅ Score 3/6: RSI 47.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CHRW [Industrials]: $181.69 | Score: 3/6 | RSI: 47.8 | MACD Hist: -0.426 | ATR: $7.55 | Vol: 0.07×
+    → ✅ Score 3/6: RSI 47.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CAG [Consumer Staples]: $18.58 | Score: 3/6 | RSI: 47.8 | MACD Hist: -0.110 | ATR: $0.52 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 47.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  WMT [Consumer Staples]: $123.92 | Score: 3/6 | RSI: 47.8 | MACD Hist: -0.718 | ATR: $3.27 | Vol: 0.44×
+    → ✅ Score 3/6: RSI 47.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  INTC [Technology]: $45.01 | Score: 3/6 | RSI: 47.9 | MACD Hist: -0.179 | ATR: $2.49 | Vol: 0.30×
+    → ✅ Score 3/6: RSI 47.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  SRE [Utilities]: $91.89 | Score: 3/6 | RSI: 48.1 | MACD Hist: -0.180 | ATR: $1.96 | Vol: 0.15×
+    → ✅ Score 3/6: RSI 48.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  GILD [Healthcare]: $144.60 | Score: 3/6 | RSI: 48.5 | MACD Hist: -1.480 | ATR: $3.72 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 48.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  HAL [Energy]: $34.16 | Score: 3/6 | RSI: 48.6 | MACD Hist: -0.264 | ATR: $1.16 | Vol: 0.23×
+    → ✅ Score 3/6: RSI 48.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  AZO [Consumer Discretionary]: $3692.14 | Score: 3/6 | RSI: 48.7 | MACD Hist: -11.682 | ATR: $111.85 | Vol: 0.07×
+    → ✅ Score 3/6: RSI 48.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  SPG [Real Estate]: $196.98 | Score: 3/6 | RSI: 49.1 | MACD Hist: -0.617 | ATR: $3.48 | Vol: 0.16×
+    → ✅ Score 3/6: RSI 49.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  GWW [Industrials]: $1120.35 | Score: 3/6 | RSI: 49.1 | MACD Hist: -4.107 | ATR: $25.29 | Vol: 0.08×
+    → ✅ Score 3/6: RSI 49.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  UNP [Industrials]: $256.05 | Score: 3/6 | RSI: 49.3 | MACD Hist: -1.655 | ATR: $5.01 | Vol: 0.18×
+    → ✅ Score 3/6: RSI 49.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  SJM [Consumer Staples]: $109.08 | Score: 3/6 | RSI: 49.3 | MACD Hist: -0.293 | ATR: $3.26 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 49.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  TDY [Technology]: $648.67 | Score: 3/6 | RSI: 49.3 | MACD Hist: -5.772 | ATR: $15.00 | Vol: 0.21×
+    → ✅ Score 3/6: RSI 49.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  NEE [Utilities]: $90.61 | Score: 3/6 | RSI: 49.5 | MACD Hist: -0.584 | ATR: $2.09 | Vol: 0.15×
+    → ✅ Score 3/6: RSI 49.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  APD [Materials]: $275.60 | Score: 3/6 | RSI: 49.5 | MACD Hist: -1.633 | ATR: $5.75 | Vol: 0.25×
+    → ✅ Score 3/6: RSI 49.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  VICI [Real Estate]: $29.45 | Score: 3/6 | RSI: 49.6 | MACD Hist: -0.087 | ATR: $0.52 | Vol: 0.09×
+    → ✅ Score 3/6: RSI 49.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  AMGN [Healthcare]: $368.20 | Score: 3/6 | RSI: 49.6 | MACD Hist: -2.563 | ATR: $9.29 | Vol: 0.38×
+    → ✅ Score 3/6: RSI 49.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  MGM [Consumer Discretionary]: $35.77 | Score: 3/6 | RSI: 49.7 | MACD Hist: 0.029 | ATR: $1.62 | Vol: 0.21×
+    → ✅ Score 3/6: RSI 49.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1)
+  AKAM [Technology]: $98.90 | Score: 3/6 | RSI: 49.7 | MACD Hist: -0.528 | ATR: $4.52 | Vol: 0.13×
+    → ✅ Score 3/6: RSI 49.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  HON [Industrials]: $236.13 | Score: 3/6 | RSI: 49.7 | MACD Hist: -1.775 | ATR: $4.88 | Vol: 0.17×
+    → ✅ Score 3/6: RSI 49.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  GPN [Other]: $76.06 | Score: 3/6 | RSI: 49.8 | MACD Hist: 0.077 | ATR: $2.73 | Vol: 0.19×
+    → ✅ Score 3/6: RSI 49.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1)
+  GNRC [Industrials]: $208.21 | Score: 3/6 | RSI: 49.9 | MACD Hist: -3.753 | ATR: $9.76 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 49.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  EXR [Real Estate]: $145.68 | Score: 3/6 | RSI: 49.9 | MACD Hist: -0.448 | ATR: $3.43 | Vol: 0.10×
+    → ✅ Score 3/6: RSI 49.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CTVA [Materials]: $75.78 | Score: 3/6 | RSI: 50.0 | MACD Hist: -0.341 | ATR: $1.57 | Vol: 0.16×
+    → ✅ Score 3/6: RSI 50.0 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  VST [Utilities]: $166.04 | Score: 3/6 | RSI: 50.1 | MACD Hist: -0.556 | ATR: $7.28 | Vol: 0.21×
+    → ✅ Score 3/6: RSI 50.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  BKR [Energy]: $60.30 | Score: 3/6 | RSI: 50.1 | MACD Hist: -0.752 | ATR: $1.66 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 50.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  O [Real Estate]: $64.53 | Score: 3/6 | RSI: 50.3 | MACD Hist: -0.367 | ATR: $1.09 | Vol: 0.19×
+    → ✅ Score 3/6: RSI 50.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  CSCO [Technology]: $79.34 | Score: 3/6 | RSI: 50.7 | MACD Hist: -0.022 | ATR: $2.06 | Vol: 0.15×
+    → ✅ Score 3/6: RSI 50.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  DGX [Healthcare]: $201.59 | Score: 3/6 | RSI: 50.9 | MACD Hist: -1.191 | ATR: $3.94 | Vol: 0.19×
+    → ✅ Score 3/6: RSI 50.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  ORLY [Consumer Discretionary]: $94.87 | Score: 3/6 | RSI: 51.0 | MACD Hist: 0.171 | ATR: $2.15 | Vol: 0.20×
+    → ✅ Score 3/6: RSI 51.0 in 35-55 (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  ODFL [Industrials]: $196.10 | Score: 3/6 | RSI: 51.0 | MACD Hist: -0.206 | ATR: $8.06 | Vol: 0.42×
+    → ✅ Score 3/6: RSI 51.0 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  LIN [Materials]: $483.59 | Score: 3/6 | RSI: 51.5 | MACD Hist: -2.566 | ATR: $9.58 | Vol: 0.17×
+    → ✅ Score 3/6: RSI 51.5 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  BMY [Healthcare]: $60.03 | Score: 3/6 | RSI: 51.7 | MACD Hist: -0.278 | ATR: $1.35 | Vol: 0.17×
+    → ✅ Score 3/6: RSI 51.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  HII [Industrials]: $430.00 | Score: 3/6 | RSI: 52.8 | MACD Hist: -2.364 | ATR: $15.88 | Vol: 0.14×
+    → ✅ Score 3/6: RSI 52.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  GEV [Industrials]: $814.60 | Score: 3/6 | RSI: 52.9 | MACD Hist: -9.028 | ATR: $35.61 | Vol: 0.29×
+    → ✅ Score 3/6: RSI 52.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  PPL [Utilities]: $37.65 | Score: 3/6 | RSI: 53.1 | MACD Hist: -0.035 | ATR: $0.71 | Vol: 0.10×
+    → ✅ Score 3/6: RSI 53.1 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  COST [Consumer Staples]: $994.66 | Score: 3/6 | RSI: 53.3 | MACD Hist: -3.016 | ATR: $20.10 | Vol: 0.38×
+    → ✅ Score 3/6: RSI 53.3 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  FRT [Real Estate]: $107.44 | Score: 3/6 | RSI: 53.6 | MACD Hist: -0.090 | ATR: $1.81 | Vol: 0.06×
+    → ✅ Score 3/6: RSI 53.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  ED [Utilities]: $110.50 | Score: 3/6 | RSI: 53.7 | MACD Hist: -0.441 | ATR: $2.02 | Vol: 0.12×
+    → ✅ Score 3/6: RSI 53.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  FAST [Industrials]: $46.19 | Score: 3/6 | RSI: 53.7 | MACD Hist: -0.047 | ATR: $1.21 | Vol: 0.11×
+    → ✅ Score 3/6: RSI 53.7 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  ES [Utilities]: $73.33 | Score: 3/6 | RSI: 53.8 | MACD Hist: -0.118 | ATR: $1.66 | Vol: 0.08×
+    → ✅ Score 3/6: RSI 53.8 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  EXE [Utilities]: $108.38 | Score: 3/6 | RSI: 53.9 | MACD Hist: 0.511 | ATR: $3.54 | Vol: 0.06×
+    → ✅ Score 3/6: RSI 53.9 in 35-55 (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  ICE [Financials]: $164.64 | Score: 3/6 | RSI: 54.3 | MACD Hist: 1.165 | ATR: $4.14 | Vol: 0.12×
+    → ✅ Score 3/6: RSI 54.3 in 35-55 (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  HCA [Healthcare]: $529.90 | Score: 3/6 | RSI: 54.4 | MACD Hist: -1.389 | ATR: $13.07 | Vol: 0.08×
+    → ✅ Score 3/6: RSI 54.4 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  EIX [Utilities]: $70.83 | Score: 3/6 | RSI: 54.6 | MACD Hist: -0.537 | ATR: $1.64 | Vol: 0.12×
+    → ✅ Score 3/6: RSI 54.6 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  SBAC [Real Estate]: $197.99 | Score: 3/6 | RSI: 54.9 | MACD Hist: -0.321 | ATR: $5.01 | Vol: 0.16×
+    → ✅ Score 3/6: RSI 54.9 in 35-55 (+1), EMA50>EMA200 uptrend (+1), Price>EMA50 (+1)
+  GD [Industrials]: $361.01 | Score: 3/6 | RSI: 55.2 | MACD Hist: 1.410 | ATR: $8.14 | Vol: 0.14×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  ABNB [Consumer Discretionary]: $133.34 | Score: 3/6 | RSI: 56.0 | MACD Hist: 1.150 | ATR: $4.70 | Vol: 0.22×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  TJX [Consumer Discretionary]: $159.37 | Score: 3/6 | RSI: 56.2 | MACD Hist: 0.308 | ATR: $3.09 | Vol: 0.34×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  CCI [Real Estate]: $90.42 | Score: 3/6 | RSI: 56.7 | MACD Hist: 0.372 | ATR: $2.51 | Vol: 0.08×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  MRNA [Healthcare]: $51.41 | Score: 3/6 | RSI: 57.0 | MACD Hist: 0.167 | ATR: $3.95 | Vol: 0.24×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  MKTX [Financials]: $185.07 | Score: 3/6 | RSI: 57.1 | MACD Hist: 0.387 | ATR: $4.23 | Vol: 0.13×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  AWK [Utilities]: $135.11 | Score: 3/6 | RSI: 58.7 | MACD Hist: 0.392 | ATR: $2.79 | Vol: 0.08×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  OMC [Communications]: $83.59 | Score: 3/6 | RSI: 59.5 | MACD Hist: 0.779 | ATR: $2.84 | Vol: 0.14×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  CTAS [Industrials]: $202.67 | Score: 3/6 | RSI: 61.1 | MACD Hist: 0.347 | ATR: $4.12 | Vol: 0.22×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  TGT [Other]: $119.21 | Score: 3/6 | RSI: 61.1 | MACD Hist: 0.082 | ATR: $3.67 | Vol: 0.14×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  KEYS [Technology]: $281.45 | Score: 3/6 | RSI: 61.6 | MACD Hist: 0.877 | ATR: $11.27 | Vol: 0.14×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  NOC [Industrials]: $750.38 | Score: 3/6 | RSI: 62.1 | MACD Hist: 0.048 | ATR: $19.39 | Vol: 0.18×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  SO [Utilities]: $96.84 | Score: 3/6 | RSI: 63.6 | MACD Hist: 0.089 | ATR: $1.69 | Vol: 0.16×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  HOLX [Healthcare]: $75.62 | Score: 3/6 | RSI: 64.1 | MACD Hist: 0.040 | ATR: $0.22 | Vol: 0.33×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  CZR [Consumer Discretionary]: $25.83 | Score: 3/6 | RSI: 64.1 | MACD Hist: 0.673 | ATR: $1.40 | Vol: 0.09×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  PNW [Utilities]: $101.58 | Score: 3/6 | RSI: 66.1 | MACD Hist: 0.090 | ATR: $1.76 | Vol: 0.16×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  DELL [Technology]: $147.82 | Score: 3/6 | RSI: 66.2 | MACD Hist: 3.051 | ATR: $7.05 | Vol: 0.15×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  TPL [Other]: $524.11 | Score: 3/6 | RSI: 66.4 | MACD Hist: 7.790 | ATR: $23.72 | Vol: 0.07×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  DOW [Materials]: $33.68 | Score: 3/6 | RSI: 66.4 | MACD Hist: 0.067 | ATR: $1.46 | Vol: 0.42×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  ATO [Utilities]: $184.52 | Score: 3/6 | RSI: 66.9 | MACD Hist: 0.153 | ATR: $2.51 | Vol: 0.10×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  PSX [Energy]: $164.51 | Score: 3/6 | RSI: 67.0 | MACD Hist: 0.503 | ATR: $4.61 | Vol: 0.18×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  KR [Consumer Staples]: $73.74 | Score: 3/6 | RSI: 67.0 | MACD Hist: 0.246 | ATR: $2.03 | Vol: 0.31×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  CBOE [Financials]: $299.90 | Score: 3/6 | RSI: 67.2 | MACD Hist: 0.623 | ATR: $6.19 | Vol: 0.27×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  EQT [Energy]: $62.49 | Score: 3/6 | RSI: 67.3 | MACD Hist: 0.228 | ATR: $1.81 | Vol: 0.14×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  COP [Energy]: $118.06 | Score: 3/6 | RSI: 68.4 | MACD Hist: 0.285 | ATR: $3.16 | Vol: 0.38×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  ROST [Consumer Discretionary]: $212.78 | Score: 3/6 | RSI: 68.5 | MACD Hist: 1.106 | ATR: $4.81 | Vol: 0.10×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  DTE [Utilities]: $148.29 | Score: 3/6 | RSI: 68.5 | MACD Hist: 0.089 | ATR: $2.56 | Vol: 0.73×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  DUK [Utilities]: $130.96 | Score: 3/6 | RSI: 68.9 | MACD Hist: 0.139 | ATR: $2.05 | Vol: 0.19×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  OXY [Energy]: $53.83 | Score: 3/6 | RSI: 69.5 | MACD Hist: 0.174 | ATR: $1.74 | Vol: 0.47×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+  MPC [Energy]: $218.93 | Score: 3/6 | RSI: 69.5 | MACD Hist: 1.656 | ATR: $7.47 | Vol: 0.32×
+    → ✅ Score 3/6: EMA50>EMA200 uptrend (+1), MACD Hist>0 (+1), Price>EMA50 (+1)
+
+🔴 SELL SIGNALS (9):
+  APA: $32.86 | RSI: 71.2 → RSI 71.2 > 70 — overbought, take profit
+  CF: $119.37 | RSI: 80.6 → RSI 80.6 > 70 — overbought, take profit
+  EOG: $133.00 | RSI: 75.1 → RSI 75.1 > 70 — overbought, take profit
+  KMI: $33.44 | RSI: 71.8 → RSI 71.8 > 70 — overbought, take profit
+  LYB: $66.47 | RSI: 76.4 → RSI 76.4 > 70 — overbought, take profit
+  NFLX: $98.69 | RSI: 72.7 → RSI 72.7 > 70 — overbought, take profit
+  TRGP: $240.07 | RSI: 73.0 → RSI 73.0 > 70 — overbought, take profit
+  VLO: $226.36 | RSI: 75.8 → RSI 75.8 > 70 — overbought, take profit
+  WM: $246.66 | RSI: 74.0 → RSI 74.0 > 70 — overbought, take profit
+
+⚪ HOLD (279 stocks not listed above):
+
+⚠️ Errors:
+  MMM: only 0 bars returned (need 20+)
+  LNT: only 16 bars returned (need 20+)
+  MO: only 0 bars returned (need 20+)
+  T: only 0 bars returned (need 20+)
+  TECH: only 0 bars returned (need 20+)
+  XYZ: only 0 bars returned (need 20+)
+  KMX: only 0 bars returned (need 20+)
+  SCHW: only 0 bars returned (need 20+)
+  KO: only 0 bars returned (need 20+)
+  STZ: only 0 bars returned (need 20+)
+  GLW: only 0 bars returned (need 20+)
+  DAY: stale bars (754.7h old, max 120h)
+  FANG: stale bars (946.7h old, max 120h)
+  XOM: only 0 bars returned (need 20+)
+  FI: only 0 bars returned (need 20+)
+  IT: only 0 bars returned (need 20+)
+  HWM: only 0 bars returned (need 20+)
+  HUBB: only 16 bars returned (need 20+)
+  HUM: only 0 bars returned (need 20+)
+  PODD: only 0 bars returned (need 20+)
+  IPG: only 0 bars returned (need 20+)
+  K: only 8 bars returned (need 20+)
+  MMC: stale bars (1258.7h old, max 120h)
+  MTCH: stale bars (754.7h old, max 120h)
+  MTD: only 0 bars returned (need 20+)
+  MU: only 0 bars returned (need 20+)
+  TAP: only 0 bars returned (need 20+)
+  RTX: only 0 bars returned (need 20+)
+  RSG: only 0 bars returned (need 20+)
+  RMD: only 16 bars returned (need 20+)
+  RVTY: only 0 bars returned (need 20+)
+  ROK: only 0 bars returned (need 20+)
+  VTR: only 0 bars returned (need 20+)
+  VZ: only 0 bars returned (need 20+)
+  VTRS: only 16 bars returned (need 20+)
+  V: only 0 bars returned (need 20+)
+  WRB: only 0 bars returned (need 20+)
+  WAB: only 0 bars returned (need 20+)
+  WBA: only 0 bars returned (need 20+)

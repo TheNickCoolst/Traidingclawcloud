@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+data/
+tmp/
+.DS_Store
+.github_token
+.env

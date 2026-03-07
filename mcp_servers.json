@@ -1,0 +1,23 @@
+{
+    "mcpServers": {
+        "sqlite": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-sqlite",
+                "--db-path",
+                "./data/tradingclaw.db"
+            ]
+        },
+        "stealth-browser": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "--shm-size=1g",
+                "stealth-browser-skill"
+            ]
+        }
+    }
+}

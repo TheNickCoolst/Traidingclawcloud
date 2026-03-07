@@ -1,0 +1,36 @@
+{
+  "name": "tradingclaw",
+  "version": "2.0.1",
+  "type": "module",
+  "description": "Lean, secure personal AI agent — Telegram + Claude + agentic tool loop",
+  "main": "dist/index.js",
+  "scripts": {
+    "predev": "node scripts/ensure-native-deps.mjs",
+    "dev": "node ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
+    "build": "node ./node_modules/typescript/bin/tsc",
+    "prestart": "node scripts/ensure-native-deps.mjs",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@supabase/supabase-js": "^2.98.0",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^16.4.7",
+    "duckduckgo-images-api": "^1.0.5",
+    "express": "^5.2.1",
+    "grammy": "^1.35.0",
+    "node-cron": "^4.2.1",
+    "openai": "^4.85.4",
+    "puppeteer-core": "^24.37.5",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.13.5",
+    "@types/node-cron": "^3.0.11",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    container_name: tradingclaw
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./.env:/app/.env
+    env_file:
+      - .env
