@@ -1,0 +1,122 @@
+name: Railway Market Power Schedule
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "auto | up | down"
+        required: false
+        default: "auto"
+
+jobs:
+  market-power:
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_ENVIRONMENT: production
+      MARKET_TIMEZONE: America/New_York
+      MARKET_OPEN_MINUTES: "570"   # 09:30 ET
+      MARKET_CLOSE_MINUTES: "960"  # 16:00 ET
+      SERVICE_LIST: "tradingclaw-main tradingclaw-light tradingclaw-ultra"
+      DISPATCH_ACTION: ${{ github.event.inputs.action }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
+    steps:
+      - name: Validate required secrets
+        run: |
+          if [ -z "${RAILWAY_TOKEN}" ] || [ -z "${RAILWAY_PROJECT_ID}" ]; then
+            echo "Missing RAILWAY_TOKEN or RAILWAY_PROJECT_ID repository secret."
+            exit 1
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Link project context
+        run: railway link --project "${RAILWAY_PROJECT_ID}" --environment "${RAILWAY_ENVIRONMENT}"
+
+      - name: Decide action by market time
+        id: market
+        run: |
+          action="${DISPATCH_ACTION:-auto}"
+          action="$(echo "$action" | tr '[:upper:]' '[:lower:]')"
+          if [ "$action" = "up" ] || [ "$action" = "down" ]; then
+            echo "action=$action" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          python - <<'PY'
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          import os
+          import json
+          import urllib.request
+
+          action = None
+          now = None
+
+          key = os.getenv("ALPACA_API_KEY", "").strip()
+          secret = os.getenv("ALPACA_API_SECRET", "").strip()
+          if key and secret:
+              try:
+                  req = urllib.request.Request(
+                      "https://paper-api.alpaca.markets/v2/clock",
+                      headers={
+                          "APCA-API-KEY-ID": key,
+                          "APCA-API-SECRET-KEY": secret,
+                      },
+                  )
+                  with urllib.request.urlopen(req, timeout=12) as r:
+                      payload = json.loads(r.read().decode("utf-8"))
+                  is_open = bool(payload.get("is_open", False))
+                  action = "up" if is_open else "down"
+                  now = payload.get("timestamp")
+                  print(f"Alpaca clock is_open={is_open} timestamp={now} -> action={action}")
+              except Exception as e:
+                  print(f"Alpaca clock lookup failed, fallback to static ET window: {e}")
+
+          if action is None:
+              tz = ZoneInfo(os.environ["MARKET_TIMEZONE"])
+              dt = datetime.now(tz)
+              now = dt.isoformat()
+              weekday = dt.weekday() < 5
+              minutes = dt.hour * 60 + dt.minute
+              open_m = int(os.environ["MARKET_OPEN_MINUTES"])
+              close_m = int(os.environ["MARKET_CLOSE_MINUTES"])
+              action = "up" if weekday and open_m <= minutes < close_m else "down"
+              print(f"ET now: {now} -> action={action}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"action={action}\n")
+              f.write(f"market_time={now}\n")
+          PY
+
+      - name: Apply up/down per service
+        run: |
+          set -euo pipefail
+          action="${{ steps.market.outputs.action }}"
+          echo "Selected action: $action"
+          for svc in ${SERVICE_LIST}; do
+            status_line="$(railway service status --service "$svc" | tr -d '\r' | grep 'Status:' || true)"
+            status="${status_line#Status: }"
+            echo "Service $svc status: ${status:-unknown}"
+
+            if [ "$action" = "up" ]; then
+              if [ "$status" = "NO DEPLOYMENT" ]; then
+                echo "Bringing $svc up..."
+                railway up --service "$svc" --detach
+              else
+                echo "$svc already deployed. Skipping up."
+              fi
+            else
+              if [ "$status" = "NO DEPLOYMENT" ]; then
+                echo "$svc already down."
+              else
+                echo "Bringing $svc down..."
+                railway down --service "$svc" --yes
+              fi
+            fi
+          done
