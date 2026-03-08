@@ -38,9 +38,12 @@ jobs:
             status_line="$(railway service status --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" | tr -d '\r' | grep 'Status:' || true)"
             status="${status_line#Status: }"
             echo "Service $svc status: ${status:-unknown}"
-            if [ "$status" = "NO DEPLOYMENT" ]; then
+            if [ "$status" = "NO DEPLOYMENT" ] || [ "$status" = "FAILED" ]; then
               echo "Starting $svc..."
               railway up --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" --project "${RAILWAY_PROJECT_ID}" --detach
+            elif [ "$status" = "SLEEPING" ]; then
+              echo "Waking sleeping service $svc..."
+              railway restart --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" || railway up --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" --project "${RAILWAY_PROJECT_ID}" --detach
             else
               echo "$svc already deployed. Skip."
             fi
