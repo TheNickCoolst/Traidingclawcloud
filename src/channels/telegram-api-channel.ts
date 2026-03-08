@@ -1,7 +1,5 @@
 import { config } from "../config.js";
 import type { Channel, RouterMessage } from "./router.js";
-
-const TELEGRAM_SEND_MESSAGE_URL = `https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`;
 const TELEGRAM_TEXT_LIMIT = 4096;
 
 function splitMessage(text: string, maxLen: number): string[] {
@@ -26,7 +24,12 @@ function splitMessage(text: string, maxLen: number): string[] {
 }
 
 async function sendChunk(chatId: number, text: string): Promise<void> {
-    const response = await fetch(TELEGRAM_SEND_MESSAGE_URL, {
+    const telegramBotToken = config.telegramBotToken?.trim();
+    if (!telegramBotToken) {
+        throw new Error("Telegram outbound disabled: TELEGRAM_BOT_TOKEN is not configured.");
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
         method: "POST",
         headers: {
             "content-type": "application/json",

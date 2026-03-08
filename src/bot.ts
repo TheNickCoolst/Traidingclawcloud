@@ -16,7 +16,12 @@ if (!fs.existsSync(tmpDir)) {
     fs.mkdirSync(tmpDir, { recursive: true });
 }
 
-export const bot = new Bot(config.telegramBotToken);
+const telegramBotToken = config.telegramBotToken;
+if (!telegramBotToken) {
+    throw new Error("TELEGRAM_BOT_TOKEN is required when Telegram is enabled.");
+}
+
+export const bot = new Bot(telegramBotToken);
 
 // ── Security middleware: whitelist check ──────────────────────────
 bot.use(async (ctx, next) => {
@@ -234,7 +239,7 @@ bot.on("message:photo", async (ctx) => {
         const file = await ctx.getFile();
         if (!file.file_path) throw new Error("No file path found for photo");
 
-        const fileUrl = `https://api.telegram.org/file/bot${config.telegramBotToken}/${file.file_path}`;
+        const fileUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${file.file_path}`;
         const response = await fetch(fileUrl);
         const arrayBuffer = await response.arrayBuffer();
 
@@ -273,7 +278,7 @@ bot.on("message:voice", async (ctx) => {
             throw new Error("No file path found for voice message.");
         }
 
-        const fileUrl = `https://api.telegram.org/file/bot${config.telegramBotToken}/${file.file_path}`;
+        const fileUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${file.file_path}`;
         const response = await fetch(fileUrl);
         const arrayBuffer = await response.arrayBuffer();
 

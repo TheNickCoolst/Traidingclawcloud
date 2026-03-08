@@ -12,6 +12,8 @@ function getRootAdminId(): number {
 
 /** Notify admin via Telegram */
 async function notifyAdmin(message: string): Promise<void> {
+    if (!config.telegramBotToken) return;
+
     const adminId = getRootAdminId();
     if (!adminId) return;
 

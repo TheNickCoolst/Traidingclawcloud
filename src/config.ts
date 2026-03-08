@@ -36,7 +36,7 @@ interface Config {
     /** Timeout for cross-service escalation requests */
     escalationRequestTimeoutMs: number;
     /** Telegram bot token from BotFather */
-    telegramBotToken: string;
+    telegramBotToken?: string;
     /** OpenRouter API key */
     openrouterApiKey: string;
     /** Telegram user IDs allowed to interact with the bot */
@@ -193,6 +193,11 @@ function requireEnv(name: string): string {
     return value;
 }
 
+function optionalEnv(name: string): string | undefined {
+    const value = process.env[name]?.trim();
+    return value ? value : undefined;
+}
+
 function parseUserIds(raw: string): number[] {
     return raw
         .split(",")
@@ -238,11 +243,16 @@ const runtimeRole = parseRuntimeRole(process.env["TRADING_RUNTIME_ROLE"]);
 const defaultTelegramEnabled = runtimeRole === "all" || runtimeRole === "main";
 const defaultDailyLogDeliveryEnabled = runtimeRole === "all" || runtimeRole === "main";
 const defaultMcpEnabled = runtimeRole === "all" || runtimeRole === "main";
+const telegramEnabled = parseBooleanEnv(process.env["TELEGRAM_ENABLED"], defaultTelegramEnabled);
+const telegramBotToken = optionalEnv("TELEGRAM_BOT_TOKEN");
+const allowedUserIds = optionalEnv("ALLOWED_USER_IDS")
+    ? parseUserIds(process.env["ALLOWED_USER_IDS"] as string)
+    : [];
 
 export const config: Config = {
     runtimeRole,
     railwayBudgetMode,
-    telegramEnabled: parseBooleanEnv(process.env["TELEGRAM_ENABLED"], defaultTelegramEnabled),
+    telegramEnabled,
     dailyLogDeliveryEnabled: parseBooleanEnv(process.env["DAILY_LOG_DELIVERY_ENABLED"], defaultDailyLogDeliveryEnabled),
     logToFileEnabled: parseBooleanEnv(withBudgetDefault("LOG_TO_FILE_ENABLED", "true", "false", railwayBudgetMode), !railwayBudgetMode),
     telegramWebhookEnabled: parseBooleanEnv(process.env["TELEGRAM_WEBHOOK_ENABLED"], false),
@@ -257,9 +267,9 @@ export const config: Config = {
     escalationLightUrl: process.env["ESCALATION_LIGHT_URL"],
     escalationSharedSecret: process.env["ESCALATION_SHARED_SECRET"] ?? process.env["WEBHOOK_SHARED_SECRET"],
     escalationRequestTimeoutMs: Number(process.env["ESCALATION_REQUEST_TIMEOUT_MS"] ?? "8000"),
-    telegramBotToken: requireEnv("TELEGRAM_BOT_TOKEN"),
+    telegramBotToken,
     openrouterApiKey: requireEnv("OPENROUTER_API_KEY"),
-    allowedUserIds: parseUserIds(requireEnv("ALLOWED_USER_IDS")),
+    allowedUserIds,
     model: process.env["MODEL"] ?? "stepfun/step-3.5-flash:free",
     providerChain: (process.env["PROVIDER_CHAIN"] ?? "openrouter").split(',').map(s => s.trim()).filter(Boolean),
     ollamaHost: process.env["OLLAMA_HOST"],
@@ -331,3 +341,16 @@ export const config: Config = {
     selfImproveRestartCommand: process.env["SELF_IMPROVE_RESTART_COMMAND"] ?? "npm start",
     selfImproveRestartDelayMs: Number(process.env["SELF_IMPROVE_RESTART_DELAY_MS"] ?? "12000"),
 };
+
+if (config.telegramEnabled) {
+    if (!config.telegramBotToken) {
+        console.error(`âŒ Missing required environment variable: TELEGRAM_BOT_TOKEN`);
+        console.error(`   Copy .env.example to .env and fill in your values.`);
+        process.exit(1);
+    }
+    if (config.allowedUserIds.length === 0) {
+        console.error(`âŒ Missing required environment variable: ALLOWED_USER_IDS`);
+        console.error(`   Copy .env.example to .env and fill in your values.`);
+        process.exit(1);
+    }
+}

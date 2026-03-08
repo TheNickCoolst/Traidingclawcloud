@@ -341,9 +341,13 @@ async function main() {
 
     if (!config.telegramEnabled) {
         // Low-memory path: outbound notifications only, no polling handlers.
-        const { telegramApiChannel } = await import("./channels/telegram-api-channel.js");
-        router.register(telegramApiChannel);
-        console.log(`Runtime role "${config.runtimeRole}" running in low-memory Telegram outbound mode.`);
+        if (config.telegramBotToken) {
+            const { telegramApiChannel } = await import("./channels/telegram-api-channel.js");
+            router.register(telegramApiChannel);
+            console.log(`Runtime role "${config.runtimeRole}" running in low-memory Telegram outbound mode.`);
+        } else {
+            console.warn(`Runtime role "${config.runtimeRole}" started without Telegram outbound because TELEGRAM_BOT_TOKEN is missing.`);
+        }
         registerShutdownHooks();
         await createFatalRunPromise();
         return;

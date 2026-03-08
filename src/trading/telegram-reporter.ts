@@ -34,6 +34,8 @@ function buildTokenUsageSuffix(): string {
 }
 
 export async function notifyAdminTelegram(message: string): Promise<void> {
+    if (!config.telegramBotToken) return;
+
     const adminId = getAdminChatId();
     if (!adminId) return;
 
