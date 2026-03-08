@@ -16,7 +16,7 @@ jobs:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID || vars.RAILWAY_PROJECT_ID || '32cbb877-ae1b-4bbc-a7e5-8ecdc9ed8533' }}
       RAILWAY_ENVIRONMENT: production
-      SERVICE_LIST: "tradingclaw-main tradingclaw-light tradingclaw-ultra tradingclaw-mini"
+      SERVICE_LIST: "tradingclawpaper100kusd tradingclaw-mini"
     steps:
       - name: Check Railway auth
         id: railway_auth

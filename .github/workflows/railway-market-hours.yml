@@ -20,7 +20,7 @@ jobs:
       MARKET_TIMEZONE: America/New_York
       MARKET_OPEN_MINUTES: "570"   # 09:30 ET
       MARKET_CLOSE_MINUTES: "960"  # 16:00 ET
-      SERVICE_LIST: "tradingclaw-main tradingclaw-light tradingclaw-ultra tradingclaw-mini"
+      SERVICE_LIST: "tradingclawpaper100kusd tradingclaw-mini"
       DISPATCH_ACTION: ${{ github.event.inputs.action }}
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
