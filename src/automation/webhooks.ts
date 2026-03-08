@@ -8,6 +8,8 @@ import { manualLightCycle, manualTradingCycle } from "../trading/engine.js";
 
 const app = express();
 const WEBHOOK_PORT = config.webhookPort;
+const TELEGRAM_WEBHOOK_PATH = "/telegram/webhook";
+let telegramWebhookUpdateHandler: ((update: unknown) => Promise<void>) | null = null;
 
 type RateLimitEntry = {
     count: number;
@@ -109,6 +111,22 @@ function ensureWebhookSharedSecret(req: Request, res: Response, next: NextFuncti
 }
 
 const webhookRateLimiter = createRateLimiter(config.webhookRateLimitWindowMs, config.webhookRateLimitMax, "Webhook");
+
+function ensureTelegramWebhookSecret(req: Request, res: Response, next: NextFunction): void {
+    const expected = config.telegramWebhookSecretToken?.trim();
+    if (!expected) {
+        next();
+        return;
+    }
+
+    const provided = req.header("x-telegram-bot-api-secret-token")?.trim() || "";
+    if (!provided || !constantTimeTokenMatch(provided, expected)) {
+        res.status(401).json({ error: "Telegram webhook secret missing or invalid." });
+        return;
+    }
+
+    next();
+}
 
 async function relayEscalationToMain(handover: {
     source?: "light" | "ultra_light";
@@ -220,6 +238,19 @@ app.post("/internal/escalate/light", webhookRateLimiter, ensureWebhookSharedSecr
     })();
 });
 
+app.post(TELEGRAM_WEBHOOK_PATH, ensureTelegramWebhookSecret, async (req, res) => {
+    if (!telegramWebhookUpdateHandler) {
+        res.status(503).json({ error: "Telegram webhook handler is not configured." });
+        return;
+    }
+
+    res.status(202).json({ status: "accepted" });
+
+    void telegramWebhookUpdateHandler(req.body).catch((err: any) => {
+        console.error(`[Webhook] Telegram webhook update failed: ${err.message}`);
+    });
+});
+
 app.use((_req, res) => {
     res.status(404).json({ error: "Not found." });
 });
@@ -247,4 +278,9 @@ export function startWebhookServer() {
     webhookServer.on("error", (err: any) => {
         console.error(`[Webhook] Server error: ${err.message}`);
     });
+}
+
+export function registerTelegramWebhookHandler(handler: (update: unknown) => Promise<void>): void {
+    telegramWebhookUpdateHandler = handler;
+    console.log(`[Webhook] Telegram webhook route ready at ${TELEGRAM_WEBHOOK_PATH}`);
 }

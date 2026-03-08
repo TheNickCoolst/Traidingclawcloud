@@ -3,6 +3,7 @@ param(
     [string]$MainService = "tradingclaw-main",
     [string]$LightService = "tradingclaw-light",
     [string]$UltraService = "tradingclaw-ultra",
+    [string]$MainTelegramWebhookUrl = "",
     [string]$WebhookSharedSecret = "",
     [string]$EscalationSharedSecret = "",
     [string]$EscalationMainUrl = "",
@@ -48,6 +49,9 @@ foreach ($service in $services) {
     Set-RailwayVar -Service $service -Name "LIGHT_CYCLE_ENABLED" -Value "true"
     Set-RailwayVar -Service $service -Name "ULTRA_LIGHT_CYCLE_ENABLED" -Value "true"
     Set-RailwayVar -Service $service -Name "HEARTBEAT_ENABLED" -Value "false"
+    Set-RailwayVar -Service $service -Name "MARKET_CLOSED_EXIT_ENABLED" -Value "true"
+    Set-RailwayVar -Service $service -Name "MARKET_CLOSED_EXIT_CHECK_MINUTES" -Value "5"
+    Set-RailwayVar -Service $service -Name "TELEGRAM_WEBHOOK_ENABLED" -Value "false"
     Set-RailwayVar -Service $service -Name "WEBHOOK_REQUIRE_SHARED_SECRET" -Value "true"
     Set-RailwayVar -Service $service -Name "TELEGRAM_NOTIFY_CYCLE_RESULTS" -Value "true"
     Set-RailwayVar -Service $service -Name "TELEGRAM_NOTIFY_CYCLE_STARTS" -Value "true"
@@ -67,6 +71,13 @@ Set-RailwayVar -Service $MainService -Name "TELEGRAM_ENABLED" -Value "true"
 Set-RailwayVar -Service $MainService -Name "DAILY_LOG_DELIVERY_ENABLED" -Value "true"
 Set-RailwayVar -Service $MainService -Name "MCP_ENABLED" -Value "true"
 Set-RailwayVar -Service $MainService -Name "TRADING_CYCLE_HOURS" -Value "1"
+if (-not [string]::IsNullOrWhiteSpace($MainTelegramWebhookUrl)) {
+    Set-RailwayVar -Service $MainService -Name "TELEGRAM_WEBHOOK_ENABLED" -Value "true"
+    Set-RailwayVar -Service $MainService -Name "TELEGRAM_WEBHOOK_URL" -Value $MainTelegramWebhookUrl
+    if (-not [string]::IsNullOrWhiteSpace($WebhookSharedSecret)) {
+        Set-RailwayVar -Service $MainService -Name "TELEGRAM_WEBHOOK_SECRET_TOKEN" -Value $WebhookSharedSecret
+    }
+}
 
 Set-RailwayVar -Service $LightService -Name "TRADING_RUNTIME_ROLE" -Value "light"
 Set-RailwayVar -Service $LightService -Name "TELEGRAM_ENABLED" -Value "false"

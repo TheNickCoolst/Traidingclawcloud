@@ -11,6 +11,12 @@ interface Config {
     dailyLogDeliveryEnabled: boolean;
     /** Whether logs should also be written to local files */
     logToFileEnabled: boolean;
+    /** Whether the main runtime should use Telegram webhooks instead of long polling */
+    telegramWebhookEnabled: boolean;
+    /** Public Telegram webhook URL for the main runtime */
+    telegramWebhookUrl?: string;
+    /** Optional Telegram secret token for webhook verification */
+    telegramWebhookSecretToken?: string;
     /** Optional Google Drive upload for daily logs */
     googleDriveLogUploadEnabled: boolean;
     /** Google Drive folder id for log uploads */
@@ -59,6 +65,10 @@ interface Config {
     heartbeatTimezone: string;
     /** Background monologue interval in minutes */
     heartbeatIntervalMinutes: number;
+    /** Whether the whole runtime should shut itself down outside US market hours */
+    marketClosedExitEnabled: boolean;
+    /** Minutes between off-hours shutdown checks */
+    marketClosedExitCheckMinutes: number;
     /** Port for webhook HTTP server */
     webhookPort: number;
     /** Max JSON body size accepted by the HTTP server in kilobytes */
@@ -235,6 +245,9 @@ export const config: Config = {
     telegramEnabled: parseBooleanEnv(process.env["TELEGRAM_ENABLED"], defaultTelegramEnabled),
     dailyLogDeliveryEnabled: parseBooleanEnv(process.env["DAILY_LOG_DELIVERY_ENABLED"], defaultDailyLogDeliveryEnabled),
     logToFileEnabled: parseBooleanEnv(withBudgetDefault("LOG_TO_FILE_ENABLED", "true", "false", railwayBudgetMode), !railwayBudgetMode),
+    telegramWebhookEnabled: parseBooleanEnv(process.env["TELEGRAM_WEBHOOK_ENABLED"], false),
+    telegramWebhookUrl: process.env["TELEGRAM_WEBHOOK_URL"],
+    telegramWebhookSecretToken: process.env["TELEGRAM_WEBHOOK_SECRET_TOKEN"] ?? process.env["WEBHOOK_SHARED_SECRET"],
     googleDriveLogUploadEnabled: parseBooleanEnv(process.env["GOOGLE_DRIVE_LOG_UPLOAD_ENABLED"], false),
     googleDriveFolderId: process.env["GOOGLE_DRIVE_FOLDER_ID"],
     googleServiceAccountEmail: process.env["GOOGLE_SERVICE_ACCOUNT_EMAIL"],
@@ -259,6 +272,8 @@ export const config: Config = {
     heartbeatEnabled: parseBooleanEnv(withBudgetDefault("HEARTBEAT_ENABLED", "true", "false", railwayBudgetMode), true),
     heartbeatTimezone: process.env["HEARTBEAT_TIMEZONE"] ?? "Europe/Berlin",
     heartbeatIntervalMinutes: Number(process.env["HEARTBEAT_INTERVAL_MINUTES"] ?? "60"),
+    marketClosedExitEnabled: parseBooleanEnv(process.env["MARKET_CLOSED_EXIT_ENABLED"], railwayBudgetMode || process.env["NODE_ENV"] === "production"),
+    marketClosedExitCheckMinutes: Number(process.env["MARKET_CLOSED_EXIT_CHECK_MINUTES"] ?? "5"),
     webhookPort: Number(process.env["PORT"] ?? process.env["WEBHOOK_PORT"] ?? "3000"),
     webhookJsonLimitKb: Number(process.env["WEBHOOK_JSON_LIMIT_KB"] ?? "32"),
     webhookFormLimitKb: Number(process.env["WEBHOOK_FORM_LIMIT_KB"] ?? "8"),

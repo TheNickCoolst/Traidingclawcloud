@@ -1,12 +1,12 @@
 import { config } from "./config.js";
 import fs from "fs";
 import path from "path";
-import { startWebhookServer } from "./automation/webhooks.js";
+import { registerTelegramWebhookHandler, startWebhookServer } from "./automation/webhooks.js";
 import { router } from "./channels/router.js";
 import { connectMcpServers } from "./mcp.js";
 import { startHeartbeat, stopHeartbeat } from "./automation/heartbeat.js";
 import "./tools/shell.js"; // Keep shell tool available for main-cycle agent decisions.
-import { startTradingEngine, stopTradingEngine } from "./trading/engine.js";
+import { getBotActivityStatus, startTradingEngine, stopTradingEngine } from "./trading/engine.js";
 import { overrideConsole, setupDailyLogDelivery, stopDailyLogDelivery } from "./logger.js";
 
 interface TelegramBotRuntime {
@@ -32,6 +32,7 @@ let shutdownHooksRegistered = false;
 let activeBot: TelegramBotRuntime | null = null;
 let activeRunReject: ((err: unknown) => void) | null = null;
 let fatalRuntimeHooksRegistered = false;
+let marketClosedExitInterval: NodeJS.Timeout | null = null;
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -160,6 +161,10 @@ function releaseAppLock(): void {
 }
 
 function cleanupRuntime(): void {
+    if (marketClosedExitInterval) {
+        clearInterval(marketClosedExitInterval);
+        marketClosedExitInterval = null;
+    }
     try {
         stopTradingEngine();
     } catch {
@@ -181,6 +186,32 @@ function cleanupRuntime(): void {
         // best effort
     }
     releaseAppLock();
+}
+
+function requestMarketClosedShutdown(reason: string): void {
+    if (shutdownInProgress) return;
+    shutdownInProgress = true;
+    console.log(reason);
+    cleanupRuntime();
+    process.exit(0);
+}
+
+function maybeExitWhenMarketClosed(context: string): void {
+    if (!config.marketClosedExitEnabled) return;
+    const status = getBotActivityStatus();
+    if (status.active) return;
+    requestMarketClosedShutdown(`[Runtime] ${context}: outside US market hours (${status.hour}:${String(status.minute).padStart(2, "0")} ET). Exiting to save runtime cost.`);
+}
+
+function startMarketClosedExitGuard(): void {
+    if (!config.marketClosedExitEnabled || marketClosedExitInterval) return;
+
+    maybeExitWhenMarketClosed("Startup guard");
+
+    const intervalMinutes = Math.max(1, Math.floor(config.marketClosedExitCheckMinutes || 5));
+    marketClosedExitInterval = setInterval(() => {
+        maybeExitWhenMarketClosed("Off-hours guard");
+    }, intervalMinutes * 60 * 1000);
 }
 
 function registerShutdownHooks(): void {
@@ -231,6 +262,42 @@ async function maybeLoadMainCycleToolset(): Promise<void> {
     ]);
 }
 
+async function completeTelegramBotStartup(bot: TelegramBotRuntime): Promise<void> {
+    let botInfo: { username?: string } | null = null;
+    try {
+        botInfo = await (bot.api as any).getMe();
+    } catch (err: any) {
+        console.error("Failed to fetch Telegram bot identity:", err.message);
+    }
+
+    if (botInfo?.username) {
+        console.log(`Bot started as @${botInfo.username}`);
+    }
+
+    const adminId = config.allowedUserIds[0];
+    if (adminId && !startupNotifiedInProcess && shouldSendStartupNotification()) {
+        await bot.api.sendMessage(
+            adminId,
+            "TradingClaw v2.0.1 is now online and active.\nLogs will be sent daily at 00:05.",
+            { parse_mode: "Markdown" }
+        ).then(() => {
+            startupNotifiedInProcess = true;
+            markStartupNotificationSent();
+        }).catch((e: any) => console.error("Failed to send startup notification:", e.message));
+    }
+
+    await bot.api.setMyCommands([
+        { command: "status", description: "View trading status and positions" },
+        { command: "trade", description: "Manually trigger a trading cycle" },
+        { command: "reflect", description: "Manually trigger a reflection cycle" },
+        { command: "usage", description: "View API token usage stats" },
+        { command: "logs", description: "Get current daily log file" },
+        { command: "new", description: "Wipe session memory to start fresh" },
+        { command: "compact", description: "Manually force context compaction" },
+        { command: "ping", description: "Check heartbeat or backend status" },
+    ]).catch((err: any) => console.error("Failed to set Telegram bot commands UI:", err.message));
+}
+
 async function main() {
     overrideConsole();
     setupDailyLogDelivery();
@@ -266,6 +333,8 @@ async function main() {
         cleanupRuntime();
         return;
     }
+
+    startMarketClosedExitGuard();
     console.log("");
 
     startWebhookServer();
@@ -320,37 +389,38 @@ async function main() {
         }
     });
 
+    registerShutdownHooks();
+
+    if (config.telegramWebhookEnabled) {
+        const webhookUrl = config.telegramWebhookUrl?.trim();
+        if (!webhookUrl) {
+            throw new Error("TELEGRAM_WEBHOOK_ENABLED=true but TELEGRAM_WEBHOOK_URL is empty.");
+        }
+
+        registerTelegramWebhookHandler(async (update: unknown) => {
+            await bot.handleUpdate(update as any);
+        });
+
+        const secretToken = config.telegramWebhookSecretToken?.trim();
+        await bot.init();
+        await bot.api.setWebhook(webhookUrl, secretToken ? { secret_token: secretToken } : {});
+        await completeTelegramBotStartup(bot as TelegramBotRuntime);
+        console.log(`Telegram webhook mode enabled: ${webhookUrl}`);
+        await createFatalRunPromise();
+        return;
+    }
+
     console.log("Starting Telegram long polling...");
     console.log("Press Ctrl+C to stop.\n");
-    registerShutdownHooks();
+
+    await bot.api.deleteWebhook().catch((err: any) => {
+        console.error("Failed to clear Telegram webhook before polling mode:", err.message);
+    });
 
     await Promise.race([
         bot.start({
-            onStart: async (info: any) => {
-                console.log(`Bot started as @${info.username}`);
-
-                const adminId = config.allowedUserIds[0];
-                if (adminId && !startupNotifiedInProcess && shouldSendStartupNotification()) {
-                    await bot.api.sendMessage(
-                        adminId,
-                        "TradingClaw v2.0.1 is now online and active.\nLogs will be sent daily at 00:05.",
-                        { parse_mode: "Markdown" }
-                    ).then(() => {
-                        startupNotifiedInProcess = true;
-                        markStartupNotificationSent();
-                    }).catch((e: any) => console.error("Failed to send startup notification:", e.message));
-                }
-
-                await bot.api.setMyCommands([
-                    { command: "status", description: "View trading status and positions" },
-                    { command: "trade", description: "Manually trigger a trading cycle" },
-                    { command: "reflect", description: "Manually trigger a reflection cycle" },
-                    { command: "usage", description: "View API token usage stats" },
-                    { command: "logs", description: "Get current daily log file" },
-                    { command: "new", description: "Wipe session memory to start fresh" },
-                    { command: "compact", description: "Manually force context compaction" },
-                    { command: "ping", description: "Check heartbeat or backend status" },
-                ]).catch((err: any) => console.error("Failed to set Telegram bot commands UI:", err.message));
+            onStart: async () => {
+                await completeTelegramBotStartup(bot as TelegramBotRuntime);
             },
         }),
         createFatalRunPromise(),

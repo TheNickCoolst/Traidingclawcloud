@@ -1126,11 +1126,18 @@ async function runAutoDeploymentBuys(
     return actions;
 }
 
+export interface BotActivityStatus {
+    active: boolean;
+    highActivity: boolean;
+    hour: number;
+    minute: number;
+}
+
 /**
  * Check if current wall-clock time is inside regular US market hours
  * (Mon-Fri, 09:30-16:00 America/New_York).
  */
-function getBotActivityStatus(): { active: boolean; highActivity: boolean; hour: number; minute: number } {
+export function getBotActivityStatus(): BotActivityStatus {
     const tz = US_MARKET_TIMEZONE;
     const now = new Date();
     const formatter = new Intl.DateTimeFormat("en-US", {
