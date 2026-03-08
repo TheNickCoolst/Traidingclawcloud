@@ -259,7 +259,7 @@ export const config: Config = {
     heartbeatEnabled: parseBooleanEnv(withBudgetDefault("HEARTBEAT_ENABLED", "true", "false", railwayBudgetMode), true),
     heartbeatTimezone: process.env["HEARTBEAT_TIMEZONE"] ?? "Europe/Berlin",
     heartbeatIntervalMinutes: Number(process.env["HEARTBEAT_INTERVAL_MINUTES"] ?? "60"),
-    webhookPort: Number(process.env["WEBHOOK_PORT"] ?? "3000"),
+    webhookPort: Number(process.env["PORT"] ?? process.env["WEBHOOK_PORT"] ?? "3000"),
     webhookJsonLimitKb: Number(process.env["WEBHOOK_JSON_LIMIT_KB"] ?? "32"),
     webhookFormLimitKb: Number(process.env["WEBHOOK_FORM_LIMIT_KB"] ?? "8"),
     webhookRateLimitWindowMs: Number(process.env["WEBHOOK_RATE_LIMIT_WINDOW_MS"] ?? "60000"),

@@ -39,6 +39,22 @@ Get-Content .env | ForEach-Object {
 }
 ```
 
+Fast path for the non-secret AGENTS.md production defaults:
+
+```powershell
+npm run railway:apply-prod-vars
+```
+
+Optional with secrets / escalation URLs in one pass:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/apply-railway-prod-vars.ps1 `
+  -WebhookSharedSecret "replace-with-random-secret" `
+  -EscalationSharedSecret "replace-with-random-secret" `
+  -EscalationMainUrl "https://<main-domain>/internal/escalate/main" `
+  -EscalationLightUrl "https://<light-domain>/internal/escalate/light"
+```
+
 ## 4) Role-specific variables
 
 Set a shared secret once and reuse on all 3 services:
@@ -62,6 +78,9 @@ railway variables set TRADING_RUNTIME_ROLE="main" --service tradingclaw-main --s
 railway variables set TELEGRAM_ENABLED="true" --service tradingclaw-main --skip-deploys
 railway variables set DAILY_LOG_DELIVERY_ENABLED="true" --service tradingclaw-main --skip-deploys
 railway variables set MCP_ENABLED="true" --service tradingclaw-main --skip-deploys
+railway variables set APP_FATAL_RESTART_ENABLED="true" --service tradingclaw-main --skip-deploys
+railway variables set APP_FATAL_RESTART_BASE_DELAY_MS="5000" --service tradingclaw-main --skip-deploys
+railway variables set APP_FATAL_RESTART_MAX_DELAY_MS="60000" --service tradingclaw-main --skip-deploys
 ```
 
 Light:
@@ -71,6 +90,9 @@ railway variables set TRADING_RUNTIME_ROLE="light" --service tradingclaw-light -
 railway variables set TELEGRAM_ENABLED="false" --service tradingclaw-light --skip-deploys
 railway variables set DAILY_LOG_DELIVERY_ENABLED="false" --service tradingclaw-light --skip-deploys
 railway variables set MCP_ENABLED="false" --service tradingclaw-light --skip-deploys
+railway variables set APP_FATAL_RESTART_ENABLED="true" --service tradingclaw-light --skip-deploys
+railway variables set APP_FATAL_RESTART_BASE_DELAY_MS="5000" --service tradingclaw-light --skip-deploys
+railway variables set APP_FATAL_RESTART_MAX_DELAY_MS="60000" --service tradingclaw-light --skip-deploys
 railway variables set ESCALATION_MAIN_URL="https://<main-domain>/internal/escalate/main" --service tradingclaw-light --skip-deploys
 ```
 
@@ -81,6 +103,9 @@ railway variables set TRADING_RUNTIME_ROLE="ultra" --service tradingclaw-ultra -
 railway variables set TELEGRAM_ENABLED="false" --service tradingclaw-ultra --skip-deploys
 railway variables set DAILY_LOG_DELIVERY_ENABLED="false" --service tradingclaw-ultra --skip-deploys
 railway variables set MCP_ENABLED="false" --service tradingclaw-ultra --skip-deploys
+railway variables set APP_FATAL_RESTART_ENABLED="true" --service tradingclaw-ultra --skip-deploys
+railway variables set APP_FATAL_RESTART_BASE_DELAY_MS="5000" --service tradingclaw-ultra --skip-deploys
+railway variables set APP_FATAL_RESTART_MAX_DELAY_MS="60000" --service tradingclaw-ultra --skip-deploys
 railway variables set ESCALATION_LIGHT_URL="https://<light-domain>/internal/escalate/light" --service tradingclaw-ultra --skip-deploys
 ```
 
@@ -153,12 +178,14 @@ Behavior:
 - Every 10 minutes it checks market status.
 - During market open -> services are started (if currently down).
 - Outside market -> services are stopped.
+- After an `up` decision it performs a second verification pass and retries services that are still `FAILED`, `SLEEPING`, or `NO DEPLOYMENT`.
 - Uses Alpaca `/v2/clock` when `ALPACA_API_KEY` + `ALPACA_API_SECRET` are set in GitHub Secrets.
 - Falls back to static ET window (Mon-Fri, 09:30-16:00 ET) if Alpaca secrets are missing.
+- Inside each service, fatal process errors now trigger an in-process restart loop with exponential backoff unless the error is a Telegram `409 getUpdates conflict`.
 
 Required GitHub repository secrets:
 - `RAILWAY_TOKEN`
-- `RAILWAY_PROJECT_ID` (for `tradingclaw-budget`: `32cbb877-ae1b-4bbc-a7e5-8ecdc9ed8533`)
+- `RAILWAY_PROJECT_ID` is supported as a secret or repo variable, but the workflow now falls back to `32cbb877-ae1b-4bbc-a7e5-8ecdc9ed8533` if omitted.
 - optional but recommended for holiday-accurate open/close:
   - `ALPACA_API_KEY`
   - `ALPACA_API_SECRET`

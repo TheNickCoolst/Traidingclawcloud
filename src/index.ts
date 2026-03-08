@@ -22,10 +22,49 @@ const STARTUP_NOTIFY_STATE_PATH = path.join(process.cwd(), "data", "startup-noti
 const APP_LOCK_PATH = path.join(process.cwd(), "data", `tradingclaw-app-${config.runtimeRole}.lock`);
 const STARTUP_NOTIFY_MINUTES = Number(process.env["STARTUP_NOTIFY_MINUTES"] ?? "360");
 const STARTUP_NOTIFY_MIN_MS = Math.max(1, STARTUP_NOTIFY_MINUTES) * 60 * 1000;
+const FATAL_RESTART_ENABLED = (process.env["APP_FATAL_RESTART_ENABLED"] ?? "true") === "true";
+const FATAL_RESTART_BASE_DELAY_MS = Math.max(1_000, Number(process.env["APP_FATAL_RESTART_BASE_DELAY_MS"] ?? "5_000".replace(/_/g, "")));
+const FATAL_RESTART_MAX_DELAY_MS = Math.max(FATAL_RESTART_BASE_DELAY_MS, Number(process.env["APP_FATAL_RESTART_MAX_DELAY_MS"] ?? "60_000".replace(/_/g, "")));
+const FATAL_RESTART_MAX_ATTEMPTS = Math.max(0, Number(process.env["APP_FATAL_RESTART_MAX_ATTEMPTS"] ?? "0"));
 let startupNotifiedInProcess = false;
 let shutdownInProgress = false;
 let shutdownHooksRegistered = false;
 let activeBot: TelegramBotRuntime | null = null;
+let activeRunReject: ((err: unknown) => void) | null = null;
+let fatalRuntimeHooksRegistered = false;
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function reportFatalRuntimeError(err: unknown): void {
+    if (shutdownInProgress) return;
+    if (activeRunReject) {
+        activeRunReject(err);
+        return;
+    }
+    console.error("Fatal runtime error without active supervisor:", err);
+}
+
+function registerFatalRuntimeHooks(): void {
+    if (fatalRuntimeHooksRegistered) return;
+
+    process.on("uncaughtException", (err) => {
+        console.error("Uncaught exception:", err);
+        reportFatalRuntimeError(err);
+    });
+    process.on("unhandledRejection", (reason) => {
+        console.error("Unhandled rejection:", reason);
+        reportFatalRuntimeError(reason);
+    });
+    fatalRuntimeHooksRegistered = true;
+}
+
+function createFatalRunPromise(): Promise<never> {
+    return new Promise((_, reject) => {
+        activeRunReject = reject;
+    });
+}
 
 function shouldSendStartupNotification(): boolean {
     if ((process.env["STARTUP_NOTIFY_ENABLED"] ?? "true") !== "true") return false;
@@ -237,6 +276,7 @@ async function main() {
         router.register(telegramApiChannel);
         console.log(`Runtime role "${config.runtimeRole}" running in low-memory Telegram outbound mode.`);
         registerShutdownHooks();
+        await createFatalRunPromise();
         return;
     }
 
@@ -284,48 +324,79 @@ async function main() {
     console.log("Press Ctrl+C to stop.\n");
     registerShutdownHooks();
 
-    await bot.start({
-        onStart: async (info: any) => {
-            console.log(`Bot started as @${info.username}`);
+    await Promise.race([
+        bot.start({
+            onStart: async (info: any) => {
+                console.log(`Bot started as @${info.username}`);
 
-            const adminId = config.allowedUserIds[0];
-            if (adminId && !startupNotifiedInProcess && shouldSendStartupNotification()) {
-                await bot.api.sendMessage(
-                    adminId,
-                    "TradingClaw v2.0.1 is now online and active.\nLogs will be sent daily at 00:05.",
-                    { parse_mode: "Markdown" }
-                ).then(() => {
-                    startupNotifiedInProcess = true;
-                    markStartupNotificationSent();
-                }).catch((e: any) => console.error("Failed to send startup notification:", e.message));
-            }
+                const adminId = config.allowedUserIds[0];
+                if (adminId && !startupNotifiedInProcess && shouldSendStartupNotification()) {
+                    await bot.api.sendMessage(
+                        adminId,
+                        "TradingClaw v2.0.1 is now online and active.\nLogs will be sent daily at 00:05.",
+                        { parse_mode: "Markdown" }
+                    ).then(() => {
+                        startupNotifiedInProcess = true;
+                        markStartupNotificationSent();
+                    }).catch((e: any) => console.error("Failed to send startup notification:", e.message));
+                }
 
-            await bot.api.setMyCommands([
-                { command: "status", description: "View trading status and positions" },
-                { command: "trade", description: "Manually trigger a trading cycle" },
-                { command: "reflect", description: "Manually trigger a reflection cycle" },
-                { command: "usage", description: "View API token usage stats" },
-                { command: "logs", description: "Get current daily log file" },
-                { command: "new", description: "Wipe session memory to start fresh" },
-                { command: "compact", description: "Manually force context compaction" },
-                { command: "ping", description: "Check heartbeat or backend status" },
-            ]).catch((err: any) => console.error("Failed to set Telegram bot commands UI:", err.message));
-        },
-    });
+                await bot.api.setMyCommands([
+                    { command: "status", description: "View trading status and positions" },
+                    { command: "trade", description: "Manually trigger a trading cycle" },
+                    { command: "reflect", description: "Manually trigger a reflection cycle" },
+                    { command: "usage", description: "View API token usage stats" },
+                    { command: "logs", description: "Get current daily log file" },
+                    { command: "new", description: "Wipe session memory to start fresh" },
+                    { command: "compact", description: "Manually force context compaction" },
+                    { command: "ping", description: "Check heartbeat or backend status" },
+                ]).catch((err: any) => console.error("Failed to set Telegram bot commands UI:", err.message));
+            },
+        }),
+        createFatalRunPromise(),
+    ]);
 }
 
 async function startWithAutoRestart() {
+    registerFatalRuntimeHooks();
+
     if (!acquireAppLock()) return;
-    try {
-        await main();
-    } catch (err) {
-        console.error("Fatal error:", err);
-        cleanupRuntime();
-        if (isTelegramPollingConflict(err)) {
-            console.error("Telegram polling conflict (409): another bot instance is running with the same token. Auto-restart stopped to prevent loops.");
+
+    let attempt = 0;
+    while (true) {
+        activeRunReject = null;
+        try {
+            await main();
             return;
+        } catch (err) {
+            attempt += 1;
+            console.error("Fatal error:", err);
+            cleanupRuntime();
+            activeRunReject = null;
+
+            if (shutdownInProgress) return;
+            if (isTelegramPollingConflict(err)) {
+                console.error("Telegram polling conflict (409): another bot instance is running with the same token. Auto-restart stopped to prevent loops.");
+                return;
+            }
+            if (!FATAL_RESTART_ENABLED) {
+                console.error("TradingClaw stopped after fatal error. Auto-restart is disabled.");
+                return;
+            }
+            if (FATAL_RESTART_MAX_ATTEMPTS > 0 && attempt >= FATAL_RESTART_MAX_ATTEMPTS) {
+                console.error(`TradingClaw stopped after fatal error. Reached restart limit (${FATAL_RESTART_MAX_ATTEMPTS}).`);
+                return;
+            }
+
+            const delayMs = Math.min(FATAL_RESTART_BASE_DELAY_MS * (2 ** Math.max(0, attempt - 1)), FATAL_RESTART_MAX_DELAY_MS);
+            console.error(`TradingClaw restarting after fatal error in ${Math.round(delayMs / 1000)}s (attempt ${attempt}).`);
+            await sleep(delayMs);
+
+            if (!acquireAppLock()) {
+                console.error("TradingClaw restart aborted: app lock is held by another process.");
+                return;
+            }
         }
-        console.error("TradingClaw stopped after fatal error. Start it again after fixing the cause.");
     }
 }
 

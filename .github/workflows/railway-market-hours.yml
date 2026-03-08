@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID || vars.RAILWAY_PROJECT_ID || '32cbb877-ae1b-4bbc-a7e5-8ecdc9ed8533' }}
       RAILWAY_ENVIRONMENT: production
       MARKET_TIMEZONE: America/New_York
       MARKET_OPEN_MINUTES: "570"   # 09:30 ET
@@ -25,21 +25,28 @@ jobs:
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
     steps:
-      - name: Validate required secrets
+      - name: Check Railway auth
+        id: railway_auth
         run: |
-          if [ -z "${RAILWAY_TOKEN}" ] || [ -z "${RAILWAY_PROJECT_ID}" ]; then
-            echo "Missing RAILWAY_TOKEN or RAILWAY_PROJECT_ID repository secret."
-            exit 1
+          if [ -n "${RAILWAY_TOKEN}" ] && [ -n "${RAILWAY_PROJECT_ID}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Railway auth incomplete, skipping Railway deploy steps."
+            echo "RAILWAY_PROJECT_ID currently resolves to: ${RAILWAY_PROJECT_ID}"
           fi
 
       - name: Checkout
+        if: steps.railway_auth.outputs.available == 'true'
         uses: actions/checkout@v4
 
       - name: Install Railway CLI
+        if: steps.railway_auth.outputs.available == 'true'
         run: npm install -g @railway/cli
 
       - name: Decide action by market time
         id: market
+        if: steps.railway_auth.outputs.available == 'true'
         run: |
           action="${DISPATCH_ACTION:-auto}"
           action="$(echo "$action" | tr '[:upper:]' '[:lower:]')"
@@ -95,6 +102,7 @@ jobs:
           PY
 
       - name: Apply up/down per service
+        if: steps.railway_auth.outputs.available == 'true'
         run: |
           set -euo pipefail
           action="${{ steps.market.outputs.action }}"
@@ -121,5 +129,21 @@ jobs:
                 echo "Bringing $svc down..."
                 railway down --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" --yes || true
               fi
+            fi
+          done
+
+      - name: Repair failed services during market hours
+        if: steps.railway_auth.outputs.available == 'true' && steps.market.outputs.action == 'up'
+        run: |
+          set -euo pipefail
+          echo "Waiting 20s before post-start verification..."
+          sleep 20
+          for svc in ${SERVICE_LIST}; do
+            status_line="$(railway service status --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" | tr -d '\r' | grep 'Status:' || true)"
+            status="${status_line#Status: }"
+            echo "Post-start status $svc: ${status:-unknown}"
+            if [ "$status" = "FAILED" ] || [ "$status" = "NO DEPLOYMENT" ] || [ "$status" = "SLEEPING" ]; then
+              echo "Repairing $svc after failed or incomplete startup..."
+              railway restart --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" || railway up --service "$svc" --environment "${RAILWAY_ENVIRONMENT}" --project "${RAILWAY_PROJECT_ID}" --detach
             fi
           done
