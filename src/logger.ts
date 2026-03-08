@@ -1,11 +1,10 @@
 import fs from "fs";
 import path from "path";
 import util from "node:util";
-import { InputFile } from "grammy";
 import cron from "node-cron";
 import type { ScheduledTask } from "node-cron";
-import { bot } from "./bot.js";
 import { config } from "./config.js";
+import { router } from "./channels/router.js";
 
 const LOGS_DIR = path.join(process.cwd(), "logs");
 let dailyLogJob: ScheduledTask | null = null;
@@ -66,8 +65,10 @@ async function sendErrorToAdmin(message: string): Promise<void> {
 
     try {
         const text = message.length > 4000 ? message.substring(0, 3900) + "..." : message;
-        await bot.api.sendMessage(adminId, `SYSTEM ERROR ALERT\n\n\`\`\`\n${text}\n\`\`\``, {
-            parse_mode: "Markdown",
+        await router.send("telegram", {
+            chatId: adminId,
+            userId: adminId,
+            text: `SYSTEM ERROR ALERT\n\n${text}`,
         });
     } catch (e) {
         process.stderr.write(`Telegram error report failed: ${e}\n`);
@@ -154,6 +155,11 @@ export function setupDailyLogDelivery(): void {
 
         try {
             if (config.telegramEnabled && adminId) {
+                // Lazy import so non-Telegram/low-memory runtimes don't load grammy stack.
+                const [{ bot }, { InputFile }] = await Promise.all([
+                    import("./bot.js"),
+                    import("grammy"),
+                ]);
                 await bot.api.sendDocument(adminId, new InputFile(logFile), {
                     caption: `Daily Log File: ${fileName}`,
                 });
