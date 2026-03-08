@@ -1,70 +1,187 @@
-# Repository Guidelines
+# AGENTS.md - TradingClaw Betriebsanleitung (Railway)
 
-## Project Structure & Module Organization
-Core application code lives in `src/` and is organized by domain: `trading/` (strategy + execution), `tools/` (tool registry and integrations), `llm/`, `automation/`, `memory/`, and `channels/`. Entry point is `src/index.ts`.
+Diese Datei ist der zentrale Leitfaden fuer Menschen und Coding-Agents in diesem Repository.
+Sie dokumentiert, wie TradingClaw produktiv betrieben wird, wie der Markt-Autostart funktioniert und wie Kosten niedrig bleiben.
 
-Runtime and deployment folders:
-- `data/`: local SQLite data (for example `data/tradingclaw.db`).
-- `dist/`: compiled JavaScript output from TypeScript build.
-- `hardware/esp32_bridge/`: ESP32/webhook bridge code.
-- `workers/proxy/`: Cloudflare Worker proxy.
-- Root `test_*.ts` files: script-based integration/smoke checks.
+## 1) Architektur und Rollen
 
-## Trading Engine & Strategy Context (v3.0)
-TradingClaw v3.0 is an autonomous AI trading system that operates in a multi-cycle format. If you modify `src/trading/engine.ts` or related trading logic, you must adhere to these guardrails:
+TradingClaw laeuft als 3 getrennte Railway-Services:
 
-**Engine Architecture**
-- **Trading Cycle (Configurable, default 3h):** Evaluates overall account status, screens the watchlist using multi-factor scoring (RSI, EMA, Volume, MACD), searches the web for news (avoiding bad news), calculates ATR-based risk/sizes, places limit BUY orders, and applies mandatory stop-losses.
-- **Light Cycle (Every 1 min):** Fast evaluation loop for open positions strictly to manage exits (trailing stops, take-profit limits, stop-losses). It must NEVER screen for new buys or buy stock (designed to save context window and API costs).
-- **Reflection Cycle (Every 24h):** Self-reflection summarizing the last 24h of trades. Extracts "LESSONS LEARNED" which feed continuously into the subsequent Trading Cycles.
+- `tradingclaw-main`
+  - `TRADING_RUNTIME_ROLE=main`
+  - Telegram Polling an (`TELEGRAM_ENABLED=true`)
+  - Main Cycle + Daily Reflection
+- `tradingclaw-light`
+  - `TRADING_RUNTIME_ROLE=light`
+  - Telegram Polling aus (`TELEGRAM_ENABLED=false`)
+  - Light Cycle (Exit/Risk) + Eskalation zu Main
+- `tradingclaw-ultra`
+  - `TRADING_RUNTIME_ROLE=ultra`
+  - Telegram Polling aus (`TELEGRAM_ENABLED=false`)
+  - Ultra-Light Cycle + Eskalation zu Light (Fallback Main)
 
-**Strategy & Risk Management**
-- **Position Sizing:** 2% risk per trade (ATR-based), capped at maximum 10% of total equity per single position.
-- **Limits:** Maximum 7 open positions. Maximum 2 positions per sector (e.g., Technology, Healthcare).
-- **Cash Rules:** Must maintain â‰¥60% of equity invested. If cash exceeds 40%, the agent must actively look for buys.
-- **Entry Criteria:** Score â‰¥ 3/6. Buy orders use LIMIT prices (0.2% above current price). Every buy must immediately set a trailing stop (2x ATR) and a take-profit order (+10%).
-- **Automated Exits:** 
-  1. Break-even stop logic activates at +3% profit.
-  2. Tightened stop (1.5x ATR) activates at +5% profit.
-  3. Hard floor stop-loss at -7% as a safety net.
+Wichtig: Nur `main` darf Telegram long polling machen. Sonst entsteht Telegram `409 getUpdates conflict`.
 
-## Build, Test, and Development Commands
-- `npm install`: install dependencies.
-- `npm run dev`: run the bot in watch mode with `tsx` (`src/index.ts`).
-- `npm run build`: compile TypeScript to `dist/`.
-- `npm start`: run the compiled build (`dist/index.js`).
-- `docker-compose up -d`: start containerized services for local deployment.
-- `npx tsx test_cycle.ts`: run a manual trading cycle smoke test.
-- `npx tsx test_screener.ts`: run watchlist screener and write `screener_out.txt`.
+## 2) Marktzeiten und Montag-Autostart
 
-## Coding Style & Naming Conventions
-Use strict TypeScript (`tsconfig.json` has `"strict": true`) with NodeNext ESM imports. Keep import specifiers ending in `.js` inside `.ts` files (project convention).
+Engine-Zeitfenster im Code:
 
-Style conventions in this repo:
-- 4-space indentation, semicolons, and concise module-level comments.
-- File names are lowercase with hyphen/word separators (examples: `self-evolving.ts`, `get-current-time.ts`).
-- `camelCase` for functions/variables, `PascalCase` for types/classes, `UPPER_SNAKE_CASE` for constants.
+- US Marktzeit: `America/New_York`
+- Aktiv: Montag-Freitag, 09:30-16:00 ET
 
-No dedicated lint/format tool is configured; use `npm run build` as the minimum quality gate.
+Fuer Deutschland (Europa/Berlin) gilt:
 
-## Testing Guidelines
-This project currently uses script-driven integration tests rather than Jest/Vitest. Follow existing naming: `test_*.ts` (root) and `src/test_*.ts`.
+- **Montag, 9. Maerz 2026** startet US-Markt um **14:30 CET**
+- Nach der deutschen Sommerzeit-Umstellung (ab 29. Maerz 2026) startet der US-Markt um **15:30 CEST**
 
-Before opening a PR, run:
+Services muessen ausserhalb der Marktzeit nicht laufen.
+Auto-Start/Stop wird ueber GitHub Actions erzwungen (siehe Abschnitt 6).
+
+## 3) Cycle-Frequenzen (Produktiv)
+
+- Main Cycle: jede 1 Stunde (`TRADING_CYCLE_HOURS=1`)
+- Light Cycle: alle 5 Minuten (`LIGHT_CYCLE_INTERVAL_MINUTES=5`)
+- Ultra-Light Cycle: jede 1 Minute (`ULTRA_LIGHT_CYCLE_INTERVAL_MINUTES=1`)
+- Daily Reflection: 15:55 ET (werktags)
+- Weekend Weekly Review: aus bei `RAILWAY_BUDGET_MODE=true`
+
+## 4) Low-RAM-Modus (Kostenoptimierung)
+
+Der teuerste Faktor ist RAM. Deshalb gelten produktiv folgende Regeln:
+
+- `main`: `MCP_ENABLED=true`
+- `light`: `MCP_ENABLED=false`
+- `ultra`: `MCP_ENABLED=false`
+
+Implementiert im Code:
+
+- `light`/`ultra` starten keinen schweren Telegram-Polling-Stack
+- `light`/`ultra` nutzen nur einen leichten Telegram-Outbound-Channel fuer Notifications
+- schwere Agent-/Tool-Ladepfade werden lazy geladen und nur auf `main` genutzt
+
+Relevante Dateien:
+
+- `src/index.ts`
+- `src/config.ts`
+- `src/channels/telegram-api-channel.ts`
+
+## 5) Eskalationspfad
+
+Fast-Cycle Eskalation:
+
+- ultra -> light: `/internal/escalate/light`
+- light -> main: `/internal/escalate/main`
+
+Absicherung:
+
+- `WEBHOOK_SHARED_SECRET`
+- `WEBHOOK_REQUIRE_SHARED_SECRET=true`
+- `ESCALATION_SHARED_SECRET` (oder Fallback auf Webhook Secret)
+
+## 6) Automatisches Hoch-/Runterfahren (wichtig)
+
+Workflow-Datei:
+
+- `.github/workflows/railway-market-hours.yml`
+
+Verhalten:
+
+- laeuft alle 10 Minuten (`cron: */10 * * * *`)
+- entscheidet `up` oder `down`
+- nutzt Alpaca Clock (`/v2/clock`) wenn API-Secrets gesetzt sind
+- faellt sonst auf statisches ET-Zeitfenster Mo-Fr 09:30-16:00 zurueck
+- startet alle 3 Services bei Markt offen
+- faehrt alle 3 Services bei Markt zu herunter
+
+Pflicht-GitHub-Secrets:
+
+- `RAILWAY_TOKEN`
+- `RAILWAY_PROJECT_ID`
+
+Empfohlen fuer feiertagsgenaue Marktlogik:
+
+- `ALPACA_API_KEY`
+- `ALPACA_API_SECRET`
+
+## 7) Notfall- und Fallback-Befehle
+
+Wenn Auto-Start Montag nicht ausloest:
+
+1. GitHub Actions -> `Railway Market Power Schedule` manuell starten mit `action=up`
+2. Oder lokal:
+
+```powershell
+railway up --service tradingclaw-main --environment production --detach
+railway up --service tradingclaw-light --environment production --detach
+railway up --service tradingclaw-ultra --environment production --detach
+```
+
+Wenn sofort Kosten gestoppt werden muessen:
+
+```powershell
+railway down --service tradingclaw-main --environment production --yes
+railway down --service tradingclaw-light --environment production --yes
+railway down --service tradingclaw-ultra --environment production --yes
+```
+
+Status pruefen:
+
+```powershell
+railway service status --service tradingclaw-main --environment production
+railway service status --service tradingclaw-light --environment production
+railway service status --service tradingclaw-ultra --environment production
+```
+
+## 8) Telegram Benachrichtigungen
+
+`main` kann senden:
+
+- Startup-Info
+- Cycle Start
+- Cycle Ergebnis
+- Fast-Cycle Updates
+- Trade Events
+- Token Usage Snapshot
+
+Wichtige ENV-Schalter:
+
+- `TELEGRAM_NOTIFY_CYCLE_RESULTS`
+- `TELEGRAM_NOTIFY_CYCLE_STARTS`
+- `TELEGRAM_NOTIFY_TRADE_EVENTS`
+- `TELEGRAM_NOTIFY_FAST_CYCLE_SKIPS`
+- `TELEGRAM_NOTIFY_TOKEN_USAGE`
+
+## 9) Deploy-Standard fuer Agents
+
+Vor Deploy:
+
 1. `npm run build`
-2. Relevant `npx tsx test_*.ts` scripts for changed areas
+2. sicherstellen, dass keine Secrets im Commit liegen
+3. falls Trading-Logik geaendert wurde: Schedule + Rollentrennung gegenpruefen
 
-Prefer paper-trading/sandbox credentials in `.env` when running trading tests.
+Deploy:
 
-## Commit & Pull Request Guidelines
-Recent history mixes imperative summaries and Conventional Commit style (`feat:`), plus release tags (for example `v3 release`). Prefer: `<type>: <short imperative summary>` (example: `fix: handle empty screener response`).
+1. push nach `main`
+2. Railway Deploy je Service oder auf Auto-Workflow warten
+3. Logs pruefen (`railway logs --service <name> --environment production --lines 80`)
 
-PRs should include:
-1. What changed and why
-2. Any `.env`/schema/runtime impact
-3. Commands run and outcomes
-4. Linked issue/task
-5. Logs or screenshots for user-facing Telegram/trading behavior changes
+Erwartete Log-Signale:
 
-## Security & Configuration Tips
-Copy `.env.example` to `.env`; never commit secrets or tokens. Keep local DB artifacts and generated dumps out of commits unless explicitly required.
+- Runtime role korrekt (`main`/`light`/`ultra`)
+- Marktzeitfenster korrekt (`Mon-Fri 09:30-16:00 America/New_York`)
+- kein Telegram 409 Konflikt
+- `light`/`ultra`: `MCP enabled: false` und `low-memory Telegram outbound mode`
+
+## 10) Sicherheit
+
+- Niemals `.env`, Tokens, API-Keys oder Private Keys committen.
+- Keine produktiven Secrets in Issues/PR-Kommentaren teilen.
+- `.env.example` ist die einzige Vorlage fuer neue Variablen.
+
+## 11) Referenzen
+
+- `RAILWAY_SOP.md` (Deploy und Operations)
+- `.github/workflows/railway-market-hours.yml`
+- `.github/workflows/railway-teststart-now.yml`
+- `src/trading/engine.ts`
+- `src/automation/webhooks.ts`
