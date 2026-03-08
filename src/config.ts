@@ -39,6 +39,10 @@ interface Config {
     telegramBotToken?: string;
     /** OpenRouter API key */
     openrouterApiKey: string;
+    /** App title sent to OpenRouter for client identification */
+    openrouterAppTitle: string;
+    /** HTTP referer sent to OpenRouter for client identification */
+    openrouterAppReferer: string;
     /** Telegram user IDs allowed to interact with the bot */
     allowedUserIds: number[];
     /** Model identifier (OpenRouter format) */
@@ -101,6 +105,8 @@ interface Config {
     alpacaBaseUrl: string;
     /** Alpaca market data URL */
     alpacaDataUrl: string;
+    /** Allow fractional-share market orders on fractionable Alpaca assets */
+    alpacaAllowFractionalShares: boolean;
     /** Hours between autonomous trading cycles */
     tradingCycleHours: number;
     /** Hours between self-reflection cycles */
@@ -269,6 +275,8 @@ export const config: Config = {
     escalationRequestTimeoutMs: Number(process.env["ESCALATION_REQUEST_TIMEOUT_MS"] ?? "8000"),
     telegramBotToken,
     openrouterApiKey: requireEnv("OPENROUTER_API_KEY"),
+    openrouterAppTitle: process.env["OPENROUTER_APP_TITLE"] ?? "OpenClaw",
+    openrouterAppReferer: process.env["OPENROUTER_APP_REFERER"] ?? "https://openclaw.local",
     allowedUserIds,
     model: process.env["MODEL"] ?? "stepfun/step-3.5-flash:free",
     providerChain: (process.env["PROVIDER_CHAIN"] ?? "openrouter").split(',').map(s => s.trim()).filter(Boolean),
@@ -300,6 +308,7 @@ export const config: Config = {
     alpacaApiSecret: requireEnv("ALPACA_API_SECRET"),
     alpacaBaseUrl: process.env["ALPACA_BASE_URL"] ?? "https://paper-api.alpaca.markets",
     alpacaDataUrl: process.env["ALPACA_DATA_URL"] ?? "https://data.alpaca.markets",
+    alpacaAllowFractionalShares: parseBooleanEnv(process.env["ALPACA_ALLOW_FRACTIONAL_SHARES"], false),
     tradingCycleHours: Number(withBudgetDefault("TRADING_CYCLE_HOURS", "1", "1", railwayBudgetMode)),
     reflectionCycleHours: Number(withBudgetDefault("REFLECTION_CYCLE_HOURS", "24", "24", railwayBudgetMode)),
     tradingMaxToolIterations: Number(withBudgetDefault("TRADING_MAX_TOOL_ITERATIONS", "40", "12", railwayBudgetMode)),

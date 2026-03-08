@@ -9,6 +9,7 @@ import { scoreStock, checkExitCondition, validateBuySetup } from "./strategy.js"
 import { runWatchlistScreen, formatScreenResult } from "./screener.js";
 import { getSector, isSectorLimitReached } from "./sectors.js";
 import { estimateRoundTripFeeUsd, estimateTradingFeeUsd, formatCurrentFeeTierSummary, getTradingFeeRate, isDailyLossLimitBreached } from "./risk-controls.js";
+import { config } from "../config.js";
 
 type TradingExecutionContext = "default" | "light" | "ultra_light";
 let tradingExecutionContext: TradingExecutionContext = "default";
@@ -19,6 +20,15 @@ export function setTradingExecutionContext(context: TradingExecutionContext): vo
 
 function isStaleBarsError(err: unknown): boolean {
     return err instanceof Error && err.message.includes("Stale market bars");
+}
+
+function roundDownQty(value: number, decimals = 6): number {
+    const factor = 10 ** decimals;
+    return Math.floor(value * factor) / factor;
+}
+
+function hasFractionalQty(value: number): boolean {
+    return Math.abs(value - Math.trunc(value)) > 1e-9;
 }
 
 // â”€â”€ get_account â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -122,6 +132,13 @@ registerTool(
             const trailPrice = input.trail_price as number | undefined;
             const extendedHours = Boolean(input.extended_hours);
             const reasoning = (input.reasoning as string) || "";
+            const asset = await alpaca.getAsset(symbol).catch(() => null);
+            const supportsFractionalMarket = Boolean(
+                config.alpacaAllowFractionalShares &&
+                asset?.fractionable &&
+                type === "market" &&
+                !extendedHours
+            );
 
             if ((tradingExecutionContext === "light" || tradingExecutionContext === "ultra_light") && side === "buy") {
                 return "RISK GUARD BLOCKED: Fast cycle cannot open new buy positions.";
@@ -210,7 +227,9 @@ registerTool(
                     }
 
                     if (requestedValue > maxPositionValue) {
-                        const cappedQty = Math.floor(maxPositionValue / currentPrice);
+                        const cappedQty = supportsFractionalMarket
+                            ? roundDownQty(maxPositionValue / currentPrice)
+                            : Math.floor(maxPositionValue / currentPrice);
                         if (cappedQty <= 0) {
                             return `RISK GUARD BLOCKED: ${symbol} exceeds 10% max position and capped qty is 0.`;
                         }
@@ -219,7 +238,9 @@ registerTool(
 
                     // Do not spend more cash than available.
                     const takerFeeRate = getTradingFeeRate("taker");
-                    const affordableQty = Math.floor(cash / (estimatedEntryPrice * (1 + takerFeeRate)));
+                    const affordableQty = supportsFractionalMarket
+                        ? roundDownQty(cash / (estimatedEntryPrice * (1 + takerFeeRate)))
+                        : Math.floor(cash / (estimatedEntryPrice * (1 + takerFeeRate)));
                     if (affordableQty <= 0) {
                         return `RISK GUARD BLOCKED: Not enough cash to buy ${symbol} at $${estimatedEntryPrice.toFixed(2)} including estimated taker fee ${(takerFeeRate * 100).toFixed(2)}%.`;
                     }
@@ -239,6 +260,31 @@ registerTool(
                     console.error(`PDT/risk check failed:`, e.message);
                     return `RISK GUARD BLOCKED: Risk check failed for ${symbol} (${e.message}).`;
                 }
+            }
+
+            if (side === "buy" && config.alpacaAllowFractionalShares && type !== "market" && qty < 1) {
+                return `RISK GUARD BLOCKED: Fractional buys for ${symbol} require type \"market\" on Alpaca.`;
+            }
+
+            if (hasFractionalQty(qty)) {
+                if (!config.alpacaAllowFractionalShares) {
+                    return `RISK GUARD BLOCKED: Fractional quantity ${qty} is disabled for this runtime.`;
+                }
+                if (!(asset?.fractionable)) {
+                    return `RISK GUARD BLOCKED: ${symbol} is not fractionable on Alpaca.`;
+                }
+                if (type !== "market") {
+                    return `RISK GUARD BLOCKED: Fractional orders for ${symbol} must use type \"market\".`;
+                }
+                if (extendedHours) {
+                    return `RISK GUARD BLOCKED: Fractional orders for ${symbol} cannot use extended_hours.`;
+                }
+                qty = roundDownQty(qty);
+                if (qty <= 0) {
+                    return `RISK GUARD BLOCKED: Fractional quantity rounded to 0 for ${symbol}.`;
+                }
+            } else {
+                qty = Math.floor(qty);
             }
 
             // Trailing stops and stop orders should use GTC so they don't expire at end of day

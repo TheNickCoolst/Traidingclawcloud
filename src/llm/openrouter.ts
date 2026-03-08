@@ -25,8 +25,8 @@ export class OpenRouterProvider implements IProvider {
                 baseURL: "https://openrouter.ai/api/v1",
                 apiKey: this.apiKeys[keyIndex],
                 defaultHeaders: {
-                    "HTTP-Referer": "https://tradingclaw.local",
-                    "X-Title": "TradingClaw",
+                    "HTTP-Referer": config.openrouterAppReferer,
+                    "X-Title": config.openrouterAppTitle,
                 },
             }));
         }

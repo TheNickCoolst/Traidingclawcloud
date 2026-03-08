@@ -1260,6 +1260,41 @@ function registerEngineSignalHooks(): void {
 
 // â”€â”€ System Prompts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+const MINI_ACCOUNT_PROMPT_SUFFIX = config.alpacaAllowFractionalShares ? `
+
+MICRO ACCOUNT MODE (IMPORTANT):
+  â€¢ This runtime may trade a very small account using FRACTIONAL SHARES.
+  â€¢ If a position size is below 1 share, use decimal qty with up to 6 decimals.
+  â€¢ Fractional orders on Alpaca must use MARKET orders only.
+  â€¢ Do NOT place fractional LIMIT, STOP, TRAILING STOP, or extended-hours orders.
+  â€¢ For very small accounts, prefer simple market entries and simple market exits.
+  â€¢ You are allowed to hold fewer positions and keep more cash if position sizing is too small.
+  â€¢ If the setup is weak or fees/slippage would dominate, SKIP the trade.
+` : "";
+
+const TRADING_CASH_LOW_RULE = config.alpacaAllowFractionalShares
+    ? `  â†’ If cash is very low (<$3), stop and do not look for new buys.`
+    : `  â†’ If cash is very low (<$500), stop and do not look for new buys.`;
+
+const TRADING_STEP3_EXECUTION_RULES = config.alpacaAllowFractionalShares
+    ? `  â†’ For each passing candidate:
+    1. Get ATR from the screener output
+    2. Calculate risk_per_share = 2 Ã— ATR
+    3. Calculate qty from risk, but you MAY use decimal qty up to 6 decimals
+    4. Cap total position to â‰¤ 10% of equity
+    5. Use place_order with side:"buy", type:"market"
+    6. Do NOT place trailing_stop, stop, or take-profit orders for fractional positions
+    7. Re-check exits in later cycles using market sells if needed`
+    : `  â†’ For each passing candidate:
+    1. Get ATR from the screener output
+    2. Calculate risk_per_share = 2 Ã— ATR
+    3. Calculate qty = floor(equity Ã— 0.02 / risk_per_share)
+    4. Cap qty so total position â‰¤ 10% of equity
+    5. Set limit_price = current_price Ã— 1.002 (0.2% ABOVE current price to ensure fast fill)
+    6. Call place_order with side:"buy", type:"limit", limit_price
+    7. IMMEDIATELY place trailing_stop: side:"sell", type:"trailing_stop", trail_price: round(2 Ã— ATR, 2)
+    8. IMMEDIATELY place take-profit: side:"sell", type:"limit", limit_price: round(entry Ã— 1.10, 2) (10% target)`;
+
 const TRADING_SYSTEM_PROMPT = `You are TradingClaw v3.0 â€” an autonomous stock trading bot running on Alpaca PAPER trading.
 
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1357,7 +1392,7 @@ STEP 1 â€” ACCOUNT & OPEN TRADES CHECK
   â†’ For EACH open position, call calculate_indicators. If the exit check says EXIT â†’ call place_order (side: "sell").
   â†’ For EACH profitable position (P/L â‰¥ +3%): Apply the BREAK-EVEN STOP RULE above.
   â†’ For EACH position with P/L â‰¥ +5%: Apply the TIGHTEN STOP RULE above.
-  â†’ If cash is very low (<$500), stop and do not look for new buys.
+${TRADING_CASH_LOW_RULE}
 
 STEP 2 â€” SCREEN & RESEARCH THE NET
   â†’ Call screen_watchlist. Focus ONLY on stocks marked ðŸŸ¢ BUY (score â‰¥ 3).
@@ -1371,15 +1406,7 @@ STEP 2 â€” SCREEN & RESEARCH THE NET
   â†’ CHECK SECTOR: if you already have 2 positions in that sector, SKIP and move to next candidate.
 
 STEP 3 â€” DECIDE INVESTMENTS & PRICES (ATR-Based Sizing)
-  â†’ For each passing candidate:
-    1. Get ATR from the screener output
-    2. Calculate risk_per_share = 2 Ã— ATR
-    3. Calculate qty = floor(equity Ã— 0.02 / risk_per_share)
-    4. Cap qty so total position â‰¤ 10% of equity
-    5. Set limit_price = current_price Ã— 1.002 (0.2% ABOVE current price to ensure fast fill)
-    6. Call place_order with side:"buy", type:"limit", limit_price
-    7. IMMEDIATELY place trailing_stop: side:"sell", type:"trailing_stop", trail_price: round(2 Ã— ATR, 2)
-    8. IMMEDIATELY place take-profit: side:"sell", type:"limit", limit_price: round(entry Ã— 1.10, 2) (10% target)
+${TRADING_STEP3_EXECUTION_RULES}
 
 STEP 4 â€” SUMMARIZE
   â†’ After all orders, output a final summary: trades made, P/L captured on exits, and why.
@@ -1405,6 +1432,7 @@ RULES:
 
 CRITICAL TOOL CALLING RULE:
 You CANNOT see market data or watchlist results yet. You MUST actually call the tools (e.g. \`screen_watchlist\`, \`get_account\`) to get real data. DO NOT hallucinate prices, scores, or stocks. Always start your first response by calling \`get_account\` and \`get_positions\`, then choose \`screen_watchlist\` for normal mode or immediate position/news defense if daily loss guard is active.
+${MINI_ACCOUNT_PROMPT_SUFFIX}
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•`;
 
 const LIGHT_DECISION_SYSTEM_PROMPT = `You are a professional algorithmic US stock day-trading decision gate.
