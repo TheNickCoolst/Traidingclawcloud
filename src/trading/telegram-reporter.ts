@@ -27,10 +27,18 @@ function n(v: number): string {
     return Number(v || 0).toLocaleString("en-US");
 }
 
+function buildTokenUsageSummary(): string {
+    const s = getTokenUsageStats();
+    return `TOKEN USAGE | 1h in:${n(s["1h_prompt"])} out:${n(s["1h_comp"])} req:${n(s["1h_req"])} | 24h in:${n(s["24h_prompt"])} out:${n(s["24h_comp"])} req:${n(s["24h_req"])} | 7d in:${n(s["7d_prompt"])} out:${n(s["7d_comp"])} req:${n(s["7d_req"])}`;
+}
+
 function buildTokenUsageSuffix(): string {
     if (!config.telegramNotifyTokenUsage) return "";
-    const s = getTokenUsageStats();
-    return `\n\nTOKEN USAGE | 1h in:${n(s["1h_prompt"])} out:${n(s["1h_comp"])} req:${n(s["1h_req"])} | 24h in:${n(s["24h_prompt"])} out:${n(s["24h_comp"])} req:${n(s["24h_req"])}`;
+    return `\n\n${buildTokenUsageSummary()}`;
+}
+
+export function logTokenUsageSnapshot(context: string): void {
+    console.log(`[Trading][Usage] ${context} | ${buildTokenUsageSummary()}`);
 }
 
 export async function notifyAdminTelegram(message: string): Promise<void> {
@@ -45,6 +53,7 @@ export async function notifyAdminTelegram(message: string): Promise<void> {
             userId: adminId,
             text: message,
         });
+        console.log(`[Trading][Telegram] Admin notification delivered (${message.length} chars).`);
     } catch (err: any) {
         console.error("[Trading][Telegram] Failed to notify admin:", err.message);
     }

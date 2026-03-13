@@ -8,6 +8,7 @@
     "predev": "node scripts/ensure-native-deps.mjs",
     "dev": "node ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
     "build": "node ./node_modules/typescript/bin/tsc",
+    "market-scheduler": "node railway/market-scheduler.mjs",
     "railway:apply-prod-vars": "powershell -ExecutionPolicy Bypass -File scripts/apply-railway-prod-vars.ps1",
     "prestart": "node scripts/ensure-native-deps.mjs",
     "start": "node dist/index.js"

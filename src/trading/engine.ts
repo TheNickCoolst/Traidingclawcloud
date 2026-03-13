@@ -14,7 +14,7 @@ import { scoreStock, validateBuySetup, checkExitCondition } from "./strategy.js"
 import { runWatchlistScreen } from "./screener.js";
 import { estimateTradingFeeUsd, evaluateDailyDrawdown, formatCurrentFeeTierSummary, getTradingFeeRate } from "./risk-controls.js";
 import { runSelfImproveCycle } from "./self-improve.js";
-import { notifyCycleResult, notifyCycleStart, notifyFastCycleResult } from "./telegram-reporter.js";
+import { notifyCycleResult, notifyCycleStart, notifyFastCycleResult, logTokenUsageSnapshot } from "./telegram-reporter.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.js";
 import { setTradingExecutionContext } from "./tools.js";
 import fs from "fs";
@@ -2648,9 +2648,8 @@ async function runMainEscalation(handover: TradingCycleHandover, sourceLabel: st
         await notifyCycleStart("TRADING CYCLE", sourceLabel);
         const fullResult = await runTradingCycle(handover);
         logScheduledResult(sourceLabel, fullResult);
-        if (!fullResult.startsWith("??") && !fullResult.startsWith("?")) {
-            await notifyCycleResult("TRADING CYCLE COMPLETE", fullResult);
-        }
+        logTokenUsageSnapshot(`After ${sourceLabel}`);
+        await notifyCycleResult("TRADING CYCLE COMPLETE", fullResult);
         return fullResult;
     }
     return postEscalation("main", handover);
@@ -2697,9 +2696,8 @@ export async function startTradingEngine(): Promise<boolean> {
             await notifyCycleStart("TRADING CYCLE", "Scheduled regular cycle.");
             const result = await runTradingCycle();
             logScheduledResult("Main cycle", result);
-            if (!result.startsWith("??")) {
-                await notifyCycleResult("TRADING CYCLE COMPLETE", result);
-            }
+            logTokenUsageSnapshot("After scheduled main cycle");
+            await notifyCycleResult("TRADING CYCLE COMPLETE", result);
         }, { timezone: tz });
 
         // 2. Daily reflection near US close (inside session)
@@ -2708,6 +2706,7 @@ export async function startTradingEngine(): Promise<boolean> {
             await notifyCycleStart("DAILY REFLECTION", "24h review started.");
             const result = await runReflectionCycle("daily");
             logScheduledResult("Daily reflection", result);
+            logTokenUsageSnapshot("After daily reflection");
             await notifyCycleResult("DAILY REFLECTION", result);
         }, { timezone: tz }) as any;
 
@@ -2718,6 +2717,7 @@ export async function startTradingEngine(): Promise<boolean> {
                 await notifyCycleStart("WEEKEND WEEKLY REVIEW", "Weekend strategy review started.");
                 const result = await runReflectionCycle("weekly");
                 logScheduledResult("Weekend weekly review", result);
+                logTokenUsageSnapshot("After weekend weekly review");
                 await notifyCycleResult("WEEKEND WEEKLY REVIEW", result);
             }, { timezone: tz }) as any;
         }

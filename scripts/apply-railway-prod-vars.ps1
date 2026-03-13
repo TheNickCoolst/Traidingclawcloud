@@ -1,13 +1,15 @@
 param(
     [string]$Environment = "production",
-    [string]$MainService = "tradingclaw-main",
-    [string]$LightService = "tradingclaw-light",
-    [string]$UltraService = "tradingclaw-ultra",
-    [string]$MainTelegramWebhookUrl = "",
+    [string]$Paper100kService = "tradingclawpaper100kusd",
+    [string]$MiniService = "tradingclaw-mini",
+    [string]$SchedulerService = "market-scheduler",
+    [string]$Paper100kTelegramWebhookUrl = "",
+    [string]$MiniTelegramWebhookUrl = "",
     [string]$WebhookSharedSecret = "",
-    [string]$EscalationSharedSecret = "",
-    [string]$EscalationMainUrl = "",
-    [string]$EscalationLightUrl = ""
+    [string]$SchedulerRailwayToken = "",
+    [string]$SchedulerProjectId = "32cbb877-ae1b-4bbc-a7e5-8ecdc9ed8533",
+    [string]$SchedulerEnvironmentId = "6308f432-7178-4dad-b06d-0ed610a2d4e0",
+    [string]$SchedulerTargetServices = "tradingclawpaper100kusd,tradingclaw-mini"
 )
 
 $ErrorActionPreference = "Stop"
@@ -42,17 +44,14 @@ function Set-OptionalRailwayVar {
     Set-RailwayVar -Service $Service -Name $Name -Value $Value
 }
 
-$services = @($MainService, $LightService, $UltraService)
+$tradingServices = @($Paper100kService, $MiniService)
 
-foreach ($service in $services) {
+foreach ($service in $tradingServices) {
     Set-RailwayVar -Service $service -Name "RAILWAY_BUDGET_MODE" -Value "true"
-    Set-RailwayVar -Service $service -Name "LIGHT_CYCLE_ENABLED" -Value "true"
-    Set-RailwayVar -Service $service -Name "ULTRA_LIGHT_CYCLE_ENABLED" -Value "true"
     Set-RailwayVar -Service $service -Name "HEARTBEAT_ENABLED" -Value "false"
     Set-RailwayVar -Service $service -Name "MARKET_CLOSED_EXIT_ENABLED" -Value "true"
     Set-RailwayVar -Service $service -Name "MARKET_CLOSED_EXIT_CHECK_MINUTES" -Value "5"
-    Set-RailwayVar -Service $service -Name "TELEGRAM_WEBHOOK_ENABLED" -Value "false"
-    Set-RailwayVar -Service $service -Name "WEBHOOK_REQUIRE_SHARED_SECRET" -Value "true"
+    Set-RailwayVar -Service $service -Name "WEBHOOK_REQUIRE_SHARED_SECRET" -Value "false"
     Set-RailwayVar -Service $service -Name "TELEGRAM_NOTIFY_CYCLE_RESULTS" -Value "true"
     Set-RailwayVar -Service $service -Name "TELEGRAM_NOTIFY_CYCLE_STARTS" -Value "true"
     Set-RailwayVar -Service $service -Name "TELEGRAM_NOTIFY_TRADE_EVENTS" -Value "true"
@@ -63,39 +62,56 @@ foreach ($service in $services) {
     Set-RailwayVar -Service $service -Name "APP_FATAL_RESTART_MAX_DELAY_MS" -Value "60000"
     Set-RailwayVar -Service $service -Name "APP_FATAL_RESTART_MAX_ATTEMPTS" -Value "0"
     Set-OptionalRailwayVar -Service $service -Name "WEBHOOK_SHARED_SECRET" -Value $WebhookSharedSecret
-    Set-OptionalRailwayVar -Service $service -Name "ESCALATION_SHARED_SECRET" -Value $EscalationSharedSecret
 }
 
-Set-RailwayVar -Service $MainService -Name "TRADING_RUNTIME_ROLE" -Value "main"
-Set-RailwayVar -Service $MainService -Name "TELEGRAM_ENABLED" -Value "true"
-Set-RailwayVar -Service $MainService -Name "DAILY_LOG_DELIVERY_ENABLED" -Value "true"
-Set-RailwayVar -Service $MainService -Name "MCP_ENABLED" -Value "true"
-Set-RailwayVar -Service $MainService -Name "TRADING_CYCLE_HOURS" -Value "1"
-if (-not [string]::IsNullOrWhiteSpace($MainTelegramWebhookUrl)) {
-    Set-RailwayVar -Service $MainService -Name "TELEGRAM_WEBHOOK_ENABLED" -Value "true"
-    Set-RailwayVar -Service $MainService -Name "TELEGRAM_WEBHOOK_URL" -Value $MainTelegramWebhookUrl
+Set-RailwayVar -Service $Paper100kService -Name "TRADING_RUNTIME_ROLE" -Value "all"
+Set-RailwayVar -Service $Paper100kService -Name "TELEGRAM_ENABLED" -Value "true"
+Set-RailwayVar -Service $Paper100kService -Name "DAILY_LOG_DELIVERY_ENABLED" -Value "true"
+Set-RailwayVar -Service $Paper100kService -Name "MCP_ENABLED" -Value "true"
+Set-RailwayVar -Service $Paper100kService -Name "TRADING_CYCLE_HOURS" -Value "1"
+Set-RailwayVar -Service $Paper100kService -Name "LIGHT_CYCLE_ENABLED" -Value "true"
+Set-RailwayVar -Service $Paper100kService -Name "LIGHT_CYCLE_INTERVAL_MINUTES" -Value "5"
+Set-RailwayVar -Service $Paper100kService -Name "ULTRA_LIGHT_CYCLE_ENABLED" -Value "true"
+Set-RailwayVar -Service $Paper100kService -Name "ULTRA_LIGHT_CYCLE_INTERVAL_MINUTES" -Value "1"
+if (-not [string]::IsNullOrWhiteSpace($Paper100kTelegramWebhookUrl)) {
+    Set-RailwayVar -Service $Paper100kService -Name "TELEGRAM_WEBHOOK_ENABLED" -Value "true"
+    Set-RailwayVar -Service $Paper100kService -Name "TELEGRAM_WEBHOOK_URL" -Value $Paper100kTelegramWebhookUrl
     if (-not [string]::IsNullOrWhiteSpace($WebhookSharedSecret)) {
-        Set-RailwayVar -Service $MainService -Name "TELEGRAM_WEBHOOK_SECRET_TOKEN" -Value $WebhookSharedSecret
+        Set-RailwayVar -Service $Paper100kService -Name "TELEGRAM_WEBHOOK_SECRET_TOKEN" -Value $WebhookSharedSecret
     }
 }
 
-Set-RailwayVar -Service $LightService -Name "TRADING_RUNTIME_ROLE" -Value "light"
-Set-RailwayVar -Service $LightService -Name "TELEGRAM_ENABLED" -Value "false"
-Set-RailwayVar -Service $LightService -Name "DAILY_LOG_DELIVERY_ENABLED" -Value "false"
-Set-RailwayVar -Service $LightService -Name "MCP_ENABLED" -Value "false"
-Set-RailwayVar -Service $LightService -Name "LIGHT_CYCLE_INTERVAL_MINUTES" -Value "5"
-Set-OptionalRailwayVar -Service $LightService -Name "ESCALATION_MAIN_URL" -Value $EscalationMainUrl
+Set-RailwayVar -Service $MiniService -Name "TRADING_RUNTIME_ROLE" -Value "main"
+Set-RailwayVar -Service $MiniService -Name "TELEGRAM_ENABLED" -Value "true"
+Set-RailwayVar -Service $MiniService -Name "DAILY_LOG_DELIVERY_ENABLED" -Value "false"
+Set-RailwayVar -Service $MiniService -Name "MCP_ENABLED" -Value "false"
+Set-RailwayVar -Service $MiniService -Name "TRADING_CYCLE_HOURS" -Value "1"
+Set-RailwayVar -Service $MiniService -Name "LIGHT_CYCLE_ENABLED" -Value "false"
+Set-RailwayVar -Service $MiniService -Name "ULTRA_LIGHT_CYCLE_ENABLED" -Value "false"
+Set-RailwayVar -Service $MiniService -Name "ALPACA_ALLOW_FRACTIONAL_SHARES" -Value "true"
+Set-RailwayVar -Service $MiniService -Name "DAILY_LOSS_LIMIT_AMOUNT" -Value "0.5"
+Set-RailwayVar -Service $MiniService -Name "DAILY_LOSS_LIMIT_MIN_PERCENT" -Value "0.05"
+if (-not [string]::IsNullOrWhiteSpace($MiniTelegramWebhookUrl)) {
+    Set-RailwayVar -Service $MiniService -Name "TELEGRAM_WEBHOOK_ENABLED" -Value "true"
+    Set-RailwayVar -Service $MiniService -Name "TELEGRAM_WEBHOOK_URL" -Value $MiniTelegramWebhookUrl
+    if (-not [string]::IsNullOrWhiteSpace($WebhookSharedSecret)) {
+        Set-RailwayVar -Service $MiniService -Name "TELEGRAM_WEBHOOK_SECRET_TOKEN" -Value $WebhookSharedSecret
+    }
+}
 
-Set-RailwayVar -Service $UltraService -Name "TRADING_RUNTIME_ROLE" -Value "ultra"
-Set-RailwayVar -Service $UltraService -Name "TELEGRAM_ENABLED" -Value "false"
-Set-RailwayVar -Service $UltraService -Name "DAILY_LOG_DELIVERY_ENABLED" -Value "false"
-Set-RailwayVar -Service $UltraService -Name "MCP_ENABLED" -Value "false"
-Set-RailwayVar -Service $UltraService -Name "ULTRA_LIGHT_CYCLE_INTERVAL_MINUTES" -Value "1"
-Set-OptionalRailwayVar -Service $UltraService -Name "ESCALATION_LIGHT_URL" -Value $EscalationLightUrl
+Set-RailwayVar -Service $SchedulerService -Name "RAILWAY_PROJECT_ID" -Value $SchedulerProjectId
+Set-RailwayVar -Service $SchedulerService -Name "RAILWAY_ENVIRONMENT_ID" -Value $SchedulerEnvironmentId
+Set-RailwayVar -Service $SchedulerService -Name "MARKET_SCHEDULER_TARGET_SERVICES" -Value $SchedulerTargetServices
+Set-RailwayVar -Service $SchedulerService -Name "MARKET_TIMEZONE" -Value "America/New_York"
+Set-RailwayVar -Service $SchedulerService -Name "MARKET_OPEN_MINUTES" -Value "570"
+Set-RailwayVar -Service $SchedulerService -Name "MARKET_CLOSE_MINUTES" -Value "960"
+Set-RailwayVar -Service $SchedulerService -Name "MARKET_SCHEDULER_REPAIR_DELAY_MS" -Value "20000"
+Set-RailwayVar -Service $SchedulerService -Name "MARKET_SCHEDULER_SKIP_REPAIR" -Value "false"
+Set-OptionalRailwayVar -Service $SchedulerService -Name "RAILWAY_TOKEN" -Value $SchedulerRailwayToken
 
 Write-Host ""
-Write-Host "Applied AGENTS.md production defaults to Railway variables."
+Write-Host "Applied current production defaults to Railway variables."
 Write-Host "Still verify these manually:"
-Write-Host "- GitHub secrets: RAILWAY_TOKEN, RAILWAY_PROJECT_ID, ALPACA_API_KEY, ALPACA_API_SECRET"
-Write-Host "- Escalation URLs set on light and ultra"
-Write-Host "- Shared secrets set consistently on all three services"
+Write-Host "- Telegram tokens / chat allow-lists on both trading services"
+Write-Host "- Alpaca credentials on both trading services and scheduler"
+Write-Host "- Railway token present on market-scheduler"

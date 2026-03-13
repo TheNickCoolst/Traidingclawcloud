@@ -283,6 +283,7 @@ async function completeTelegramBotStartup(bot: TelegramBotRuntime): Promise<void
         ).then(() => {
             startupNotifiedInProcess = true;
             markStartupNotificationSent();
+            console.log("[Telegram] Startup notification delivered to admin.");
         }).catch((e: any) => console.error("Failed to send startup notification:", e.message));
     }
 
