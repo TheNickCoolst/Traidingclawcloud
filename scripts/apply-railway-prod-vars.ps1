@@ -12,7 +12,7 @@ param(
     [string]$SchedulerEnvironmentId = "13f61ef9-ebdb-4837-a49a-d378c2c52865",
     [string]$SchedulerTargetServices = "tradingclawpaper100kusd,tradingclaw-mini",
     [string]$MinimaxApiKey = "sk-cp-DxvRpSsSGDFF_sHWp0pzEPikB2aY9J6v6fa7IfCT4oGFzq2pYoOmTIq6_kizmil2NO2EfhDpFpTegtWWNvKF1JJ_mHxN6LkiDB1W1A0PaJGZVnwTgo5z4L8",
-    [string]$MinimaxModel = "MiniMax-Text-01"
+    [string]$MinimaxModel = "MiniMax-M2.5"
 )
 
 $ErrorActionPreference = "Stop"

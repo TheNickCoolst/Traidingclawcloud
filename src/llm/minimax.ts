@@ -2,8 +2,8 @@ import OpenAI from "openai";
 import { config } from "../config.js";
 import type { IProvider, ChatOptions, ChatCompletionMessage } from "./providers.js";
 
-const MINIMAX_BASE_URL = "https://api.minimax.chat/v1";
-const DEFAULT_MINIMAX_MODEL = "MiniMax-Text-01";
+const MINIMAX_BASE_URL = "https://api.minimax.io/v1";
+const DEFAULT_MINIMAX_MODEL = "MiniMax-M2.5";
 
 export class MiniMaxProvider implements IProvider {
     id = "minimax";
