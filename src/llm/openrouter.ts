@@ -14,8 +14,12 @@ export class OpenRouterProvider implements IProvider {
             .split(",")
             .map((k) => k.trim())
             .filter(Boolean);
-        this.keyUsageTotals = new Array(this.apiKeys.length).fill(0);
 
+        if (this.apiKeys.length === 0) {
+            throw new Error("[OpenRouter] OPENROUTER_API_KEY is not configured.");
+        }
+
+        this.keyUsageTotals = new Array(this.apiKeys.length).fill(0);
         console.log(`[OpenRouter] Loaded ${this.apiKeys.length} API key(s)`);
     }
 

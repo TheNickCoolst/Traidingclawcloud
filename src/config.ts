@@ -1,5 +1,15 @@
 import "dotenv/config";
 
+export interface DailyCostReportTarget {
+    name: string;
+    url: string;
+}
+
+export interface ModelPricingOverride {
+    prompt: number;
+    completion: number;
+}
+
 interface Config {
     /** Runtime role for split-cycle deployments */
     runtimeRole: "all" | "main" | "light" | "ultra";
@@ -39,6 +49,10 @@ interface Config {
     telegramBotToken?: string;
     /** OpenRouter API key */
     openrouterApiKey: string;
+    /** MiniMax direct API key */
+    minimaxApiKey?: string;
+    /** MiniMax model override (default: MiniMax-Text-01) */
+    minimaxModel?: string;
     /** App title sent to OpenRouter for client identification */
     openrouterAppTitle: string;
     /** HTTP referer sent to OpenRouter for client identification */
@@ -93,10 +107,30 @@ interface Config {
     telegramNotifyCycleStarts: boolean;
     /** Send automatic Telegram notifications for each trade/order event */
     telegramNotifyTradeEvents: boolean;
+    /** Send automatic Telegram notifications for fast-cycle summaries */
+    telegramNotifyFastCycleResults: boolean;
     /** Send automatic Telegram notifications for fast-cycle skip updates */
     telegramNotifyFastCycleSkips: boolean;
     /** Attach token usage snapshot to Telegram trading updates */
     telegramNotifyTokenUsage: boolean;
+    /** Send automatic Telegram notifications for runtime/system errors */
+    telegramNotifySystemErrors: boolean;
+    /** Send a daily Telegram report with Railway + LLM cost estimates */
+    dailyCostReportEnabled: boolean;
+    /** Cron expression for the daily cost report */
+    dailyCostReportCron: string;
+    /** Timezone used for daily cost report windows and cron scheduling */
+    dailyCostReportTimezone: string;
+    /** Railway service name used to label the local runtime in cost reports */
+    railwayServiceName: string;
+    /** Additional TradingClaw runtimes to poll for remote LLM usage summaries */
+    dailyCostReportRemoteTargets: DailyCostReportTarget[];
+    /** Optional model pricing overrides keyed by provider:model or model */
+    llmModelPricingOverrides: Record<string, ModelPricingOverride>;
+    /** Railway CPU price in USD per vCPU-hour */
+    railwayCpuPricePerVcpuHourUsd: number;
+    /** Railway memory price in USD per GB-hour */
+    railwayMemoryPricePerGbHourUsd: number;
     /** Alpaca API Key */
     alpacaApiKey: string;
     /** Alpaca API Secret */
@@ -240,6 +274,51 @@ function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
     return fallback;
 }
 
+function parseDailyCostReportTargets(raw: string | undefined): DailyCostReportTarget[] {
+    if (!raw?.trim()) return [];
+
+    try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (!Array.isArray(parsed)) return [];
+
+        return parsed.flatMap((entry): DailyCostReportTarget[] => {
+            if (!entry || typeof entry !== "object") return [];
+            const candidate = entry as Record<string, unknown>;
+            const name = String(candidate.name ?? "").trim();
+            const url = String(candidate.url ?? "").trim();
+            if (!name || !url) return [];
+            return [{ name, url }];
+        });
+    } catch (err: any) {
+        console.error(`Invalid DAILY_COST_REPORT_REMOTE_TARGETS_JSON: ${err.message}`);
+        process.exit(1);
+    }
+}
+
+function parseModelPricingOverrides(raw: string | undefined): Record<string, ModelPricingOverride> {
+    if (!raw?.trim()) return {};
+
+    try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            return {};
+        }
+
+        const normalized: Record<string, ModelPricingOverride> = {};
+        for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+            if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+            const prompt = Number((value as Record<string, unknown>).prompt ?? 0);
+            const completion = Number((value as Record<string, unknown>).completion ?? 0);
+            if (!Number.isFinite(prompt) || !Number.isFinite(completion)) continue;
+            normalized[key.trim()] = { prompt, completion };
+        }
+        return normalized;
+    } catch (err: any) {
+        console.error(`Invalid LLM_MODEL_PRICING_JSON: ${err.message}`);
+        process.exit(1);
+    }
+}
+
 function withBudgetDefault(name: string, normalDefault: string, budgetDefault: string, budgetMode: boolean): string {
     return process.env[name] ?? (budgetMode ? budgetDefault : normalDefault);
 }
@@ -274,7 +353,9 @@ export const config: Config = {
     escalationSharedSecret: process.env["ESCALATION_SHARED_SECRET"] ?? process.env["WEBHOOK_SHARED_SECRET"],
     escalationRequestTimeoutMs: Number(process.env["ESCALATION_REQUEST_TIMEOUT_MS"] ?? "8000"),
     telegramBotToken,
-    openrouterApiKey: requireEnv("OPENROUTER_API_KEY"),
+    openrouterApiKey: optionalEnv("OPENROUTER_API_KEY") ?? "",
+    minimaxApiKey: optionalEnv("MINIMAX_API_KEY"),
+    minimaxModel: optionalEnv("MINIMAX_MODEL"),
     openrouterAppTitle: process.env["OPENROUTER_APP_TITLE"] ?? "OpenClaw",
     openrouterAppReferer: process.env["OPENROUTER_APP_REFERER"] ?? "https://openclaw.local",
     allowedUserIds,
@@ -302,8 +383,18 @@ export const config: Config = {
     telegramNotifyCycleResults: (process.env["TELEGRAM_NOTIFY_CYCLE_RESULTS"] ?? "true") === "true",
     telegramNotifyCycleStarts: (process.env["TELEGRAM_NOTIFY_CYCLE_STARTS"] ?? "true") === "true",
     telegramNotifyTradeEvents: (process.env["TELEGRAM_NOTIFY_TRADE_EVENTS"] ?? "true") === "true",
+    telegramNotifyFastCycleResults: parseBooleanEnv(process.env["TELEGRAM_NOTIFY_FAST_CYCLE_RESULTS"], true),
     telegramNotifyFastCycleSkips: (process.env["TELEGRAM_NOTIFY_FAST_CYCLE_SKIPS"] ?? "true") === "true",
     telegramNotifyTokenUsage: (process.env["TELEGRAM_NOTIFY_TOKEN_USAGE"] ?? "true") === "true",
+    telegramNotifySystemErrors: parseBooleanEnv(process.env["TELEGRAM_NOTIFY_SYSTEM_ERRORS"], true),
+    dailyCostReportEnabled: parseBooleanEnv(process.env["DAILY_COST_REPORT_ENABLED"], runtimeRole === "all"),
+    dailyCostReportCron: process.env["DAILY_COST_REPORT_CRON"] ?? "58 15 * * 1-5",
+    dailyCostReportTimezone: process.env["DAILY_COST_REPORT_TIMEZONE"] ?? "America/New_York",
+    railwayServiceName: process.env["RAILWAY_SERVICE_NAME"]?.trim() || `tradingclaw-${runtimeRole}`,
+    dailyCostReportRemoteTargets: parseDailyCostReportTargets(process.env["DAILY_COST_REPORT_REMOTE_TARGETS_JSON"]),
+    llmModelPricingOverrides: parseModelPricingOverrides(process.env["LLM_MODEL_PRICING_JSON"]),
+    railwayCpuPricePerVcpuHourUsd: Number(process.env["RAILWAY_CPU_PRICE_PER_VCPU_HOUR_USD"] ?? "0.0208333333"),
+    railwayMemoryPricePerGbHourUsd: Number(process.env["RAILWAY_MEMORY_PRICE_PER_GB_HOUR_USD"] ?? "0.0028935185"),
     alpacaApiKey: requireEnv("ALPACA_API_KEY"),
     alpacaApiSecret: requireEnv("ALPACA_API_SECRET"),
     alpacaBaseUrl: process.env["ALPACA_BASE_URL"] ?? "https://paper-api.alpaca.markets",

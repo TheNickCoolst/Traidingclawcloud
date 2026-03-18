@@ -2,6 +2,7 @@ import { config } from "../config.js";
 import type { IProvider, ChatOptions, ChatCompletionMessage } from "./providers.js";
 import { OpenRouterProvider } from "./openrouter.js";
 import { OllamaProvider } from "./ollama.js";
+import { MiniMaxProvider } from "./minimax.js";
 
 // Lazy provider registry so failed duplicate startup attempts do not eagerly
 // initialize heavy providers and spam startup logs.
@@ -14,6 +15,7 @@ function getProvider(providerId: string): IProvider | null {
     let provider: IProvider | null = null;
     if (providerId === "openrouter") provider = new OpenRouterProvider();
     if (providerId === "ollama") provider = new OllamaProvider();
+    if (providerId === "minimax") provider = new MiniMaxProvider();
 
     if (!provider) return null;
     availableProviders.set(providerId, provider);
