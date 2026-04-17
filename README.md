@@ -70,5 +70,3 @@ docker-compose up -d
 
 If exposing the webhook listener (`Port 3000`) for Github or IoT, it is recommended to deploy the included `/workers/proxy/` Cloudflare Edge script to obfuscate your home residential IP.
 
----
-*Built incrementally over 10 distinct phases via automated task generation.*
