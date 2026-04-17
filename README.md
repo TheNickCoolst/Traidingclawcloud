@@ -1,6 +1,7 @@
 TradingClaw Autonomous Agent
 **Version:** 1.0.0 
 (Future Versions will be coming)
+Don´t Use This version for Real Money Trading this version I had builded is for testing if it woud realy Work.
 
 TradingClaw is a locally-hosted, fully autonomous AI agent. Across 10 distinct phases, it has been expanded from a simple Telegram chat-bot into a sophisticated, proactive memory-graph system capable of OS manipulation, browser automation, dynamic swarm logic, and physical IoT triggers.
 
@@ -28,7 +29,7 @@ TradingClaw is a locally-hosted, fully autonomous AI agent. Across 10 distinct p
 - **Hardware Webhooks (`hardware/esp32_bridge/`)**: External Node server endpoints allow ESP32 microcontrollers and Github Actions to execute Agent thought-loops directly.
 - **Trailing Inference**: Always appends actionable, contextual button recommendations to user replies.
 
-### 6. Swarm Engine & Workflows
+### 6. Swarm Engine & Workflows(Does not work in this version)
 - **Sub-agents (`src/architecture/swarm.ts`)**: Primary loop can recursively spawn isolated agent-threads for heavy research tasks.
 - **Mesh Workflows (`src/architecture/workflows.ts`)**: Predefined execution pipelines enforcing strict outputs for daily analyses.
 - **Plugins (`src/architecture/plugins.ts`)**: Emitter hooks allow drop-in Javascript logic to mutate AI context pre/post execution.
