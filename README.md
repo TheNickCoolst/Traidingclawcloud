@@ -1,5 +1,5 @@
 TradingClaw Autonomous Agent
-**Version:** 1.0.0 
+**Version:** 0.0.1 
 (Future Versions will be coming)
 Don´t Use This version for Real Money Trading this version I had builded is for testing if it woud realy Work.
 
