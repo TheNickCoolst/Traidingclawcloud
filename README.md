@@ -1,5 +1,6 @@
 TradingClaw Autonomous Agent
-**Version:** 1.0.0 (Phase 10 Complete)
+**Version:** 1.0.0 
+(Future Versions will be coming)
 
 TradingClaw is a locally-hosted, fully autonomous AI agent. Across 10 distinct phases, it has been expanded from a simple Telegram chat-bot into a sophisticated, proactive memory-graph system capable of OS manipulation, browser automation, dynamic swarm logic, and physical IoT triggers.
 
