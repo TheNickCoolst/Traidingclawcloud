@@ -12,7 +12,7 @@ TradingClaw is a locally-hosted, fully autonomous AI agent. Across 10 distinct p
 - **Telegram UX**: Supports Voice-to-Text transcription via OpenAI Whisper, displays native UI command auto-completion, and visually pulses typing indicators during deep LLM reasoning.
 
 ### 2. Multi-LLM Agility
-- Connected to OpenRouter for continuous failover capabilities and diverse model routing (e.g. `claude-3-opus`, `gemini-1.5-pro`).
+- Connected to OpenRouter for continuous failover capabilities and diverse model routing (e.g. `claude-opus-4.7`, `claude-sonnet-4.6`or Free Models on Openrouter(only 50 Requests a Day I think)).
 - Implements specialized "Thinking Levels" preventing basic tasks from burning tokens, while allowing deep reasoning for complex queries.
 
 ### 3. Memory & Subconscious
